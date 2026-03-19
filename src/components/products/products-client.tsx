@@ -1052,8 +1052,9 @@ export function ProductsClient({
 
       {/* Product Grid */}
       <section className="space-y-8">
-        <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/10 p-4 sm:p-5">
+          <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_center,rgba(98,195,255,0.12),transparent_70%)] lg:block" />
+          <div className="relative flex flex-col gap-3 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
                 <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -1063,20 +1064,20 @@ export function ProductsClient({
                 Showing {products.length} products
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                {activeFilterCount} active filters
+                {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
               </span>
             </div>
-            <p className="max-w-2xl text-sm text-muted-foreground">
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
               Tune product type, supplier, fulfillment, status, and stock level without leaving the command view.
             </p>
           </div>
 
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="relative mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 xl:flex-1">
               <select
                 value={currentType}
                 onChange={(e) => updateFilter('type', e.target.value)}
-                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">All Types</option>
                 <option value="PROTEIN_POWDER">Protein Powder</option>
@@ -1091,7 +1092,7 @@ export function ProductsClient({
               <select
                 value={currentSupplier}
                 onChange={(e) => updateFilter('supplier', e.target.value)}
-                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">All Suppliers</option>
                 {suppliers.map((supplier) => (
@@ -1106,7 +1107,7 @@ export function ProductsClient({
                 onChange={(e) =>
                   updateFilter('fulfillmentMode', e.target.value)
                 }
-                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">All Fulfillment</option>
                 <option value="limited">Limited Stock</option>
@@ -1116,7 +1117,7 @@ export function ProductsClient({
               <select
                 value={currentStatus}
                 onChange={(e) => updateFilter('status', e.target.value)}
-                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">All Statuses</option>
                 <option value="active">Active</option>
@@ -1126,7 +1127,7 @@ export function ProductsClient({
               <select
                 value={currentStock}
                 onChange={(e) => updateFilter('stock', e.target.value)}
-                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="">All Stock Levels</option>
                 <option value="in-stock">In Stock</option>
@@ -1135,7 +1136,7 @@ export function ProductsClient({
               </select>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap xl:justify-end">
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
@@ -1164,7 +1165,7 @@ export function ProductsClient({
           </div>
 
           {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-3">
               {currentQuery && (
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   Search: {currentQuery}
@@ -1208,16 +1209,27 @@ export function ProductsClient({
             if (groupProducts.length === 0) return null;
             
             return (
-              <div key={groupName} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-foreground">{groupName}</h2>
-                  <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-                  <span className="text-xs font-medium text-muted-foreground">
+              <div key={groupName} className="space-y-4 scroll-mt-32">
+                <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-primary">
+                      <Package className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">{groupName}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {groupName === 'Special Offers (Bundles)'
+                          ? 'Promoted bundles and multi-item offers.'
+                          : 'Ready-to-manage products grouped by catalog type.'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex w-fit rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-muted-foreground">
                     {groupProducts.length} items
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   {groupProducts.map((product) => (
                     <div key={product.id} className="relative group">
                       <div className="absolute left-3 top-3 z-10">
@@ -1232,7 +1244,7 @@ export function ProductsClient({
                                 setSelectedIds((prev) => prev.filter((id) => id !== product.id));
                               }
                             }}
-                            className="h-4 w-4 rounded border-white/20 bg-black/50 text-primary focus:ring-0 focus:ring-offset-0"
+                            className="h-5 w-5 rounded-md border-white/20 bg-black/50 text-primary focus:ring-0 focus:ring-offset-0"
                           />
                         )}
                       </div>

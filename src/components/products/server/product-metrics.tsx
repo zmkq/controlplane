@@ -102,7 +102,7 @@ export async function ProductMetrics({
   const activeFilters = [
     searchQuery && `Search: ${searchQuery}`,
     typeValue && `Type: ${typeValue.replaceAll('_', ' ')}`,
-    supplierValue && `Supplier`,
+    supplierValue && 'Supplier linked',
     fulfillmentModeValue &&
       `Fulfillment: ${fulfillmentModeValue === 'on-demand' ? 'On-demand' : 'Limited'}`,
     statusValue && `Status: ${statusValue}`,
@@ -112,6 +112,7 @@ export async function ProductMetrics({
   return (
     <div className="space-y-8">
       <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/10 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="absolute -left-20 top-10 h-40 w-40 rounded-full bg-primary/10 blur-[110px]" />
         <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(98,195,255,0.16),transparent_58%)] lg:block" />
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl space-y-4">
@@ -121,10 +122,11 @@ export async function ProductMetrics({
                 {t('products.hero.systemArmory', 'System Armory')}
               </span>
               <span className="rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-primary">
-                {t('products.hero.valuation', 'Total Valuation')} ·{' '}
+                {t('products.hero.valuation', 'Total Valuation')} /{' '}
                 {t('common.currency.jod', 'JOD')} {inventoryValue.toFixed(2)}
               </span>
             </div>
+
             <div className="space-y-3">
               <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
                 <span className="text-foreground">
@@ -141,20 +143,26 @@ export async function ProductMetrics({
                 )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(activeFilters.length > 0 ? activeFilters : ['All inventory live']).map(
-                (filter) => (
-                  <span
-                    key={filter}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                    {filter}
-                  </span>
-                ),
-              )}
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-3 sm:p-4">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                {t('products.hero.filtersLive', 'Filters Live')}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(activeFilters.length > 0
+                  ? activeFilters
+                  : ['All inventory live']).map((filter) => (
+                    <span
+                      key={filter}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                      {filter}
+                    </span>
+                  ))}
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:w-[34rem]">
+          <div className="grid gap-3 sm:grid-cols-2 xl:w-[34rem]">
             <HeroSignal
               icon={Radar}
               label={t('products.hero.filtersLive', 'Filters Live')}
@@ -165,6 +173,12 @@ export async function ProductMetrics({
               icon={Layers3}
               label={t('products.metrics.skus', 'Active SKUs')}
               value={totalSkus.toString()}
+              tone="accent"
+            />
+            <HeroSignal
+              icon={Boxes}
+              label={t('products.metrics.units', 'Total Units')}
+              value={totalUnits.toString()}
               tone="accent"
             />
             <HeroSignal
@@ -215,13 +229,13 @@ function HeroSignal({
 }) {
   const toneClass =
     tone === 'danger'
-      ? 'text-destructive border-destructive/30 bg-destructive/10'
+      ? 'border-destructive/30 bg-destructive/10 text-destructive'
       : tone === 'accent'
-        ? 'text-accent border-accent/20 bg-accent/10'
-        : 'text-primary border-primary/20 bg-primary/10';
+        ? 'border-accent/20 bg-accent/10 text-accent'
+        : 'border-primary/20 bg-primary/10 text-primary';
 
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_30px_rgba(0,0,0,0.2)]">
       <div className="flex items-center gap-3">
         <span
           className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${toneClass}`}>
@@ -231,7 +245,9 @@ function HeroSignal({
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             {label}
           </p>
-          <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+          <p className="mt-1 text-xl font-bold text-foreground sm:text-2xl">
+            {value}
+          </p>
         </div>
       </div>
     </div>
