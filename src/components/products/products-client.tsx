@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProductType } from '@prisma/client';
 import {
   useEffect,
   useMemo,
@@ -19,7 +20,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { deleteProductAction, upsertProduct } from '@/app/products/actions';
+import {
+  bulkUpdateProducts,
+  deleteProductAction,
+  upsertProduct,
+} from '@/app/products/actions';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import { Trans } from '@/components/trans';
@@ -61,7 +66,7 @@ type Product = {
   attributes?: {
     shakerCount?: number;
   };
-  type?: string;
+  type?: ProductType;
 };
 
 type EditableProduct = Omit<Product, 'updatedAt' | 'images' | 'attributes'> & {
@@ -72,9 +77,9 @@ type EditableProduct = Omit<Product, 'updatedAt' | 'images' | 'attributes'> & {
 
 // Client-side validation schema
 const productSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  brand: z.string().min(1, 'Brand is required'),
-  sku: z.string().min(1, 'SKU is required'),
+  name: z.string().trim().min(1, 'Name is required'),
+  brand: z.string().trim().min(1, 'Brand is required'),
+  sku: z.string().trim().min(1, 'SKU is required'),
   flavor: z.string().optional(),
   size: z.string().optional(),
   quantity: z.number().int().nonnegative('Quantity must be 0 or more'),
@@ -83,14 +88,72 @@ const productSchema = z.object({
   active: z.boolean(),
   fulfillmentMode: z.enum(['limited', 'on-demand']),
   isBundle: z.boolean().optional(),
-  bundleItems: z.array(z.object({
-    productId: z.string(),
-    quantity: z.number().min(1)
-  })).optional(),
+  bundleItems: z
+    .array(
+      z.object({
+        productId: z.string().cuid('Select a valid bundle item'),
+        quantity: z.number().int().positive('Quantity must be at least 1'),
+      }),
+    )
+    .optional(),
   supplierId: z.string().optional(),
   shakerCount: z.number().optional(),
-  type: z.string().optional(),
+  type: z.enum([
+    'PROTEIN_POWDER',
+    'CREATINE',
+    'PRE_WORKOUT',
+    'AMINO_ACIDS',
+    'VITAMINS',
+    'ACCESSORIES',
+    'OTHER',
+  ]).optional(),
 });
+
+function validateProductPayload(
+  payload: z.infer<typeof productSchema>,
+  editingId?: string,
+) {
+  const result = productSchema.safeParse(payload);
+
+  if (!result.success) {
+    const errors: Record<string, string> = {};
+    result.error.issues.forEach((issue) => {
+      if (issue.path[0]) {
+        errors[issue.path[0] as string] = issue.message;
+      }
+    });
+    return errors;
+  }
+
+  const errors: Record<string, string> = {};
+  const bundleItems = payload.bundleItems ?? [];
+
+  if (payload.isBundle) {
+    if (bundleItems.length === 0) {
+      errors.bundleItems = 'Add at least one item to this bundle.';
+    } else if (
+      new Set(bundleItems.map((item) => item.productId)).size !==
+      bundleItems.length
+    ) {
+      errors.bundleItems = 'Bundle items must be unique.';
+    } else if (
+      editingId &&
+      bundleItems.some((item) => item.productId === editingId)
+    ) {
+      errors.bundleItems = 'A bundle cannot include itself.';
+    }
+  }
+
+  if (
+    !payload.isBundle &&
+    payload.fulfillmentMode === 'on-demand' &&
+    !payload.supplierId
+  ) {
+    errors.supplierId = 'Select an agent for on-demand fulfillment.';
+  }
+
+  return errors;
+}
 
 export function ProductsClient({
   products: initialProducts,
@@ -99,6 +162,8 @@ export function ProductsClient({
   currentType = '',
   currentSupplier = '',
   currentFulfillmentMode = '',
+  currentStatus = '',
+  currentStock = '',
 }: {
   products: Product[];
   suppliers: { id: string; name: string }[];
@@ -106,6 +171,8 @@ export function ProductsClient({
   currentType?: string;
   currentSupplier?: string;
   currentFulfillmentMode?: string;
+  currentStatus?: string;
+  currentStock?: string;
 }) {
   const router = useRouter();
   const { t } = useTranslations();
@@ -188,7 +255,12 @@ export function ProductsClient({
   }, [products]);
 
   const hasActiveFilters = Boolean(
-    currentQuery || currentType || currentSupplier || currentFulfillmentMode
+    currentQuery ||
+      currentType ||
+      currentSupplier ||
+      currentFulfillmentMode ||
+      currentStatus ||
+      currentStock
   );
   const activeSupplierName =
     suppliers.find((supplier) => supplier.id === currentSupplier)?.name ??
@@ -211,55 +283,44 @@ export function ProductsClient({
     router.push('/products');
   };
 
-  const handleBulkAction = async (action: 'delete' | 'deactivate') => {
-    if (!confirm(`Are you sure you want to ${action} ${selectedIds.length} products?`)) return;
+  const handleBulkAction = async (
+    action: 'activate' | 'deactivate' | 'delete',
+  ) => {
+    if (
+      !confirm(
+        `Are you sure you want to ${action} ${selectedIds.length} products?`,
+      )
+    ) {
+      return;
+    }
 
     const toastId = toast.loading(`Processing bulk ${action}...`);
 
     try {
+      await bulkUpdateProducts({ ids: selectedIds, action });
+
       if (action === 'delete') {
-        await Promise.all(selectedIds.map(id => deleteProductAction({ id })));
-        setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setProducts((prev) => prev.filter((product) => !selectedIds.includes(product.id)));
       } else {
-        // Deactivate
-        // Note: This is a simplified bulk update. Ideally we'd have a dedicated bulk server action.
-        await Promise.all(selectedIds.map(async (id) => {
-            const product = products.find(p => p.id === id);
-            if (!product) return;
-            
-            // We need to construct a valid payload for upsertProduct
-            // This is a bit hacky reusing the single update action, but works for now.
-            const payload = {
-                id: product.id,
-                name: product.name,
-                brand: product.brand,
-                sku: product.sku,
-                flavor: product.flavor || '',
-                size: product.size || '',
-                quantity: product.quantity,
-                cost: product.cost,
-                price: product.price,
-                active: false, // The change
-                fulfillmentMode: product.fulfillmentMode,
-                imageUrl: product.images || '',
-                isBundle: product.isBundle || false,
-                bundleItems: product.bundleItems,
-                supplierId: product.supplierId,
-                shakerCount: product.attributes?.shakerCount,
-                type: product.type as any
-            };
-             return upsertProduct(payload);
-        }));
-         // Optimistic update
-         setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, active: false } : p));
+        setProducts((prev) =>
+          prev.map((product) =>
+            selectedIds.includes(product.id)
+              ? { ...product, active: action === 'activate' }
+              : product,
+          ),
+        );
       }
 
       toast.success(`Bulk ${action} complete`, { id: toastId });
       setSelectedIds([]);
+      setIsSelectionMode(false);
       router.refresh();
     } catch (err) {
       console.error(err);
-      toast.error(`Failed to perform bulk ${action}`, { id: toastId });
+      toast.error(
+        err instanceof Error ? err.message : `Failed to perform bulk ${action}`,
+        { id: toastId },
+      );
     }
   };
 
@@ -302,12 +363,27 @@ export function ProductsClient({
 
   const updateFormField = (
     field: keyof EditableProduct,
-    value: any
+    value: EditableProduct[keyof EditableProduct]
   ) => {
+    setFieldErrors((prev) => {
+      if (!(field in prev)) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
     setFormState((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
   const handleAddBundleItem = () => {
+    setFieldErrors((prev) => {
+      if (!prev.bundleItems) return prev;
+      const next = { ...prev };
+      delete next.bundleItems;
+      return next;
+    });
     setFormState(prev => {
       if (!prev) return null;
       const currentItems = prev.bundleItems || [];
@@ -319,6 +395,12 @@ export function ProductsClient({
   };
 
   const handleRemoveBundleItem = (index: number) => {
+    setFieldErrors((prev) => {
+      if (!prev.bundleItems) return prev;
+      const next = { ...prev };
+      delete next.bundleItems;
+      return next;
+    });
     setFormState(prev => {
       if (!prev) return null;
       const currentItems = prev.bundleItems || [];
@@ -329,7 +411,17 @@ export function ProductsClient({
     });
   };
 
-  const handleUpdateBundleItem = (index: number, field: 'productId' | 'quantity', value: any) => {
+  const handleUpdateBundleItem = (
+    index: number,
+    field: 'productId' | 'quantity',
+    value: string | number,
+  ) => {
+    setFieldErrors((prev) => {
+      if (!prev.bundleItems) return prev;
+      const next = { ...prev };
+      delete next.bundleItems;
+      return next;
+    });
     setFormState(prev => {
       if (!prev) return null;
       const currentItems = [...(prev.bundleItems || [])];
@@ -358,7 +450,27 @@ export function ProductsClient({
           </div>
           <Switch
             checked={isBundle}
-            onCheckedChange={(checked: boolean) => updateFormField('isBundle', checked)}
+            onCheckedChange={(checked: boolean) => {
+              updateFormField('isBundle', checked);
+              if (checked) {
+                updateFormField('fulfillmentMode', 'limited');
+                updateFormField('supplierId', undefined);
+                updateFormField('quantity', 0);
+              }
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="space-y-0.5">
+            <label className="text-sm font-bold text-foreground">Catalog Status</label>
+            <p className="text-xs text-muted-foreground">
+              Inactive products stay searchable but can be filtered out of active operations.
+            </p>
+          </div>
+          <Switch
+            checked={current.active}
+            onCheckedChange={(checked: boolean) => updateFormField('active', checked)}
           />
         </div>
 
@@ -378,6 +490,7 @@ export function ProductsClient({
                         ? {
                             ...prev,
                             fulfillmentMode: mode,
+                            supplierId: mode === 'on-demand' ? prev.supplierId : undefined,
                             quantity: mode === 'on-demand' ? 0 : prev.quantity,
                           }
                         : prev
@@ -434,6 +547,11 @@ export function ProductsClient({
               placeholder="Select Agent..."
               className="w-full bg-black/20 border-white/10"
             />
+            {fieldErrors.supplierId && (
+              <p className="text-xs font-medium text-destructive">
+                {fieldErrors.supplierId}
+              </p>
+            )}
           </section>
         )}
 
@@ -527,6 +645,11 @@ export function ProductsClient({
                 <Plus className="mr-1 h-3 w-3" /> Add Item
               </Button>
             </div>
+            {fieldErrors.bundleItems && (
+              <p className="text-xs font-medium text-destructive">
+                {fieldErrors.bundleItems}
+              </p>
+            )}
             
             <div className="space-y-3">
               {current.bundleItems?.map((item, index) => (
@@ -661,7 +784,7 @@ export function ProductsClient({
             isBundle: product.isBundle,
             bundleItems: product.bundleItems,
             supplierId: product.supplierId,
-            shakerCount: (product as any).attributes?.shakerCount
+            shakerCount: product.attributes?.shakerCount
           }
         : null
     );
@@ -678,7 +801,7 @@ export function ProductsClient({
             isBundle: product.isBundle,
             bundleItems: product.bundleItems,
             supplierId: product.supplierId,
-            shakerCount: (product as any).attributes?.shakerCount
+            shakerCount: product.attributes?.shakerCount
           }
         : {
             id: '',
@@ -713,9 +836,9 @@ export function ProductsClient({
 
     // Validate form
     const payload = {
-      name: formState.name,
-      brand: formState.brand,
-      sku: formState.sku,
+      name: formState.name.trim(),
+      brand: formState.brand.trim(),
+      sku: formState.sku.trim().toUpperCase(),
       flavor: formState.flavor || '',
       size: formState.size || '',
       quantity: Number(formState.quantity),
@@ -725,21 +848,15 @@ export function ProductsClient({
       fulfillmentMode: formState.fulfillmentMode,
       imageUrl: formState.imageUrl || '',
       isBundle: formState.isBundle || false,
-      bundleItems: formState.bundleItems,
+      bundleItems: formState.bundleItems ?? [],
       supplierId: formState.supplierId,
       shakerCount: formState.shakerCount,
-      type: formState.type as any
+      type: formState.type
     };
 
-    const result = productSchema.safeParse(payload);
+    const errors = validateProductPayload(payload, editing?.id);
 
-    if (!result.success) {
-      const errors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-        if (issue.path[0]) {
-          errors[issue.path[0] as string] = issue.message;
-        }
-      });
+    if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       toast.error('Please fix the form errors');
       return;
@@ -895,6 +1012,13 @@ export function ProductsClient({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => handleBulkAction('activate')}
+              className="h-8 text-xs text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200">
+              Activate
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleBulkAction('deactivate')}
               className="h-8 text-xs hover:bg-white/10 hover:text-white">
               Deactivate
@@ -966,6 +1090,27 @@ export function ProductsClient({
                 <option value="limited">Limited Stock</option>
                 <option value="on-demand">On-Demand</option>
               </select>
+
+              <select
+                value={currentStatus}
+                onChange={(e) => updateFilter('status', e.target.value)}
+                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+
+              <select
+                value={currentStock}
+                onChange={(e) => updateFilter('stock', e.target.value)}
+                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All Stock Levels</option>
+                <option value="in-stock">In Stock</option>
+                <option value="low-stock">Low Stock</option>
+                <option value="out-of-stock">Out of Stock</option>
+              </select>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1021,6 +1166,16 @@ export function ProductsClient({
                     : 'Limited Stock'}
                 </span>
               )}
+              {currentStatus && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  Status: {currentStatus === 'inactive' ? 'Inactive' : 'Active'}
+                </span>
+              )}
+              {currentStock && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  Stock: {currentStock.replaceAll('-', ' ')}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -1068,9 +1223,14 @@ export function ProductsClient({
                         size={product.size}
                         quantity={product.quantity}
                         cost={product.cost}
+                        active={product.active}
                         fulfillmentMode={product.fulfillmentMode}
                         imageUrl={product.images}
-                        lowStock={product.fulfillmentMode === 'limited' && product.quantity <= limitedThreshold}
+                        lowStock={
+                          product.fulfillmentMode === 'limited' &&
+                          product.quantity > 0 &&
+                          product.quantity <= limitedThreshold
+                        }
                         currencyFormatter={currencyFormatter}
                         onEdit={() => openSheet(product)}
                         onDelete={() => handleDelete(product.id)}

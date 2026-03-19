@@ -4,6 +4,8 @@ import { ProductsClient } from '@/components/products/products-client';
 import {
   getProductFulfillmentMode,
   matchesProductFulfillmentMode,
+  matchesProductStatus,
+  matchesProductStock,
 } from '@/lib/product-filters';
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -13,6 +15,8 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
   const typeValue = Array.isArray(searchParams.type) ? searchParams.type[0] : searchParams.type;
   const supplierValue = Array.isArray(searchParams.supplier) ? searchParams.supplier[0] : searchParams.supplier;
   const fulfillmentModeValue = Array.isArray(searchParams.fulfillmentMode) ? searchParams.fulfillmentMode[0] : searchParams.fulfillmentMode;
+  const statusValue = Array.isArray(searchParams.status) ? searchParams.status[0] : searchParams.status;
+  const stockValue = Array.isArray(searchParams.stock) ? searchParams.stock[0] : searchParams.stock;
   const searchQuery = queryValue ?? '';
 
   const where: Prisma.ProductWhereInput = {};
@@ -31,6 +35,21 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
     prisma.product.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
+      include: {
+        bundleItems: {
+          select: {
+            productId: true,
+            quantity: true,
+          },
+        },
+        supplierProducts: {
+          select: {
+            supplierId: true,
+          },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
+      },
     }),
     prisma.supplier.findMany({
       select: { id: true, name: true },
@@ -40,7 +59,9 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
 
   const serializedProducts = products
     .filter((product) =>
-      matchesProductFulfillmentMode(product.attributes, fulfillmentModeValue)
+      matchesProductFulfillmentMode(product.attributes, fulfillmentModeValue) &&
+      matchesProductStatus(product.active, statusValue) &&
+      matchesProductStock(Number(product.quantity ?? 0), product.attributes, stockValue)
     )
     .map((product) => {
       const normalizedAttributes =
@@ -57,6 +78,8 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
         updatedAt: product.updatedAt.toISOString(),
         fulfillmentMode: getProductFulfillmentMode(product.attributes),
         attributes: normalizedAttributes,
+        bundleItems: product.bundleItems,
+        supplierId: product.supplierProducts[0]?.supplierId,
       };
     });
 
@@ -68,6 +91,8 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
       currentType={typeValue || ''}
       currentSupplier={supplierValue || ''}
       currentFulfillmentMode={fulfillmentModeValue || ''}
+      currentStatus={statusValue || ''}
+      currentStock={stockValue || ''}
     />
   );
 }

@@ -16,6 +16,7 @@ type ProductCardProps = {
   size: string | null;
   quantity: number;
   cost: number;
+  active: boolean;
   fulfillmentMode: 'limited' | 'on-demand';
   imageUrl: string | null;
   lowStock: boolean;
@@ -54,6 +55,7 @@ export function ProductCard({
   size,
   quantity,
   cost,
+  active,
   fulfillmentMode,
   imageUrl,
   lowStock,
@@ -67,7 +69,11 @@ export function ProductCard({
   const thumbnailUrl = imageUrl ? getImgBBThumbnail(imageUrl) : null;
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-md">
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-lg border border-border/50 bg-card transition-all hover:border-primary/30 hover:shadow-md',
+        !active && 'opacity-70',
+      )}>
       {/* Image Section - Compact */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted/30">
         {thumbnailUrl && !imageError ? (
@@ -95,7 +101,14 @@ export function ProductCard({
           <ProductImagePlaceholder name={name} brand={brand} />
         )}
 
-        {/* Fulfillment Badge */}
+        {/* Status & Fulfillment Badges */}
+        <div className="absolute left-2 top-2 flex items-center gap-1.5">
+          {!active && (
+            <span className="inline-flex items-center rounded-md border border-white/20 bg-black/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80">
+              Inactive
+            </span>
+          )}
+        </div>
         <div className="absolute right-2 top-2">
           <span
             className={cn(
@@ -128,6 +141,9 @@ export function ProductCard({
           <h3 className="text-xs font-semibold text-foreground leading-tight line-clamp-2 min-h-[2.5rem]">
             {name}
           </h3>
+          <p className="truncate text-[10px] text-muted-foreground">
+            {size || sku}
+          </p>
         </div>
 
         {/* Details Grid - 2x2 compact */}

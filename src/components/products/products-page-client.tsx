@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProductType } from '@prisma/client';
 import { ProductsClient } from '@/components/products/products-client';
 import { SearchInput } from '@/components/ui/search-input';
 import { useTranslations } from '@/lib/i18n';
@@ -22,7 +23,7 @@ type ProductEntity = {
   isBundle: boolean;
   bundleItems?: any[];
   supplierId?: string;
-  type: string;
+  type: ProductType;
 };
 
 type ProductsPageClientProps = {

@@ -9,6 +9,9 @@ import { prisma } from '@/lib/prisma';
 import {
   getProductFulfillmentMode,
   matchesProductFulfillmentMode,
+  matchesProductStatus,
+  matchesProductStock,
+  LOW_STOCK_THRESHOLD,
 } from '@/lib/product-filters';
 import { getServerTranslations } from '@/lib/server-i18n';
 
@@ -33,6 +36,12 @@ export async function ProductMetrics({
   const fulfillmentModeValue = Array.isArray(searchParams.fulfillmentMode)
     ? searchParams.fulfillmentMode[0]
     : searchParams.fulfillmentMode;
+  const statusValue = Array.isArray(searchParams.status)
+    ? searchParams.status[0]
+    : searchParams.status;
+  const stockValue = Array.isArray(searchParams.stock)
+    ? searchParams.stock[0]
+    : searchParams.stock;
   const searchQuery = queryValue ?? '';
 
   const where: Prisma.ProductWhereInput = {};
@@ -52,6 +61,7 @@ export async function ProductMetrics({
   const products = await prisma.product.findMany({
     where,
     select: {
+      active: true,
       quantity: true,
       cost: true,
       attributes: true,
@@ -59,7 +69,9 @@ export async function ProductMetrics({
   });
 
   const filteredProducts = products.filter((product) =>
-    matchesProductFulfillmentMode(product.attributes, fulfillmentModeValue)
+    matchesProductFulfillmentMode(product.attributes, fulfillmentModeValue) &&
+    matchesProductStatus(product.active, statusValue) &&
+    matchesProductStock(Number(product.quantity ?? 0), product.attributes, stockValue)
   );
 
   const totalSkus = filteredProducts.length;
@@ -70,7 +82,8 @@ export async function ProductMetrics({
   const lowStockCount = filteredProducts.filter(
     (product) =>
       getProductFulfillmentMode(product.attributes) === 'limited' &&
-      Number(product.quantity ?? 0) <= 5
+      Number(product.quantity ?? 0) > 0 &&
+      Number(product.quantity ?? 0) <= LOW_STOCK_THRESHOLD
   ).length;
   const inventoryValue = filteredProducts.reduce(
     (acc, product) =>
