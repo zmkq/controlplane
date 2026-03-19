@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { DeviceQRScanner } from './device-qr-scanner';
+import { EmptyStatePanel } from '@/components/ui/empty-state-panel';
 
 type Product = {
   id: string;
@@ -1243,33 +1244,30 @@ export function ProductsClient({
           })}
 
           {products.length === 0 && (
-            <div className="flex min-h-[20rem] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 bg-white/5 px-6 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <PackageSearch className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium text-foreground">
-                {hasActiveFilters
+            <EmptyStatePanel
+              icon={PackageSearch}
+              eyebrow="Inventory view"
+              title={
+                hasActiveFilters
                   ? 'No products match the current filters'
-                  : 'No products added yet'}
-              </h3>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                {hasActiveFilters
+                  : 'No products added yet'
+              }
+              description={
+                hasActiveFilters
                   ? 'Clear one or more filters to widen the list, or add a new SKU directly from here.'
-                  : 'Start with your first SKU to populate inventory cards, low-stock monitoring, and quick edit actions.'}
-              </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                {hasActiveFilters && (
-                  <Button variant="outline" onClick={resetFilters}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Clear Filters
-                  </Button>
-                )}
-                <Button onClick={() => openSheet(null)} className="brand-glow">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Product
+                  : 'Start with your first SKU to populate inventory cards, low-stock monitoring, and quick edit actions.'
+              }>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={resetFilters}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Clear Filters
                 </Button>
-              </div>
-            </div>
+              )}
+              <Button onClick={() => openSheet(null)} className="brand-glow">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </EmptyStatePanel>
           )}
         </div>
       </section>

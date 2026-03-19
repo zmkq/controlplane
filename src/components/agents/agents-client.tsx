@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { EmptyStatePanel } from '@/components/ui/empty-state-panel';
 import { useTranslations } from '@/lib/i18n';
 import { toast } from '@/lib/toast';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -272,12 +273,40 @@ export function AgentsClient({ agents: initialAgents }: { agents: Agent[] }) {
       </div>
 
       {filtered.length === 0 && (
-        <p className="mt-6 rounded-2xl border border-dashed border-border/60 bg-background/30 px-3 py-4 text-sm text-muted-foreground">
-          {t(
-            'agents.emptyState',
-            'No agents found. Adjust the search or add a partner.'
-          )}
-        </p>
+        <div className="mt-6">
+          <EmptyStatePanel
+            icon={Zap}
+            eyebrow={t('agents.emptyEyebrow', 'Partner network')}
+            title={
+              search
+                ? t('agents.emptySearchTitle', 'No nodes match this search')
+                : t('agents.emptyStateTitle', 'No agents configured yet')
+            }
+            description={
+              search
+                ? t(
+                    'agents.emptySearch',
+                    'Try a different name, contact, or clear the search to view every fulfillment partner.',
+                  )
+                : t(
+                    'agents.emptyState',
+                    'Add your first partner to track lead times, contacts, and managed SKUs from one surface.',
+                  )
+            }>
+            {search && (
+              <Button variant="outline" onClick={() => setSearch('')}>
+                <Search className="h-4 w-4" />
+                {t('common.clearSearch', 'Clear search')}
+              </Button>
+            )}
+            <Button
+              className="brand-glow bg-cyan-500 text-black hover:bg-cyan-400"
+              onClick={() => openSheet()}>
+              <Plus className="h-4 w-4" />
+              {t('agents.addButton', 'Add Node')}
+            </Button>
+          </EmptyStatePanel>
+        </div>
       )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

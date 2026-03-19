@@ -4,7 +4,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
-import { Plus, Filter, Package, Search, Printer, X, RefreshCw, ChevronDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Filter,
+  Package,
+  Plus,
+  Printer,
+  RefreshCw,
+  ShoppingCart,
+  X,
+} from 'lucide-react';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SearchInput } from '@/components/ui/search-input';
 import { getImgBBThumbnail } from '@/lib/imgbb';
@@ -13,6 +22,7 @@ import { ShipmentPrintView } from '@/components/sales/shipment-print-view';
 import { useRef, useState, useTransition } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { EmptyStatePanel } from '@/components/ui/empty-state-panel';
 import { bulkUpdateSaleStatus } from '@/app/sales/actions';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -100,6 +110,8 @@ export function SalesListClient({
   };
 
   const selectedSalesData = sales.filter(s => selectedSales.has(s.id));
+  const hasFilters =
+    channelFilter !== 'all' || fulfillmentFilter !== 'all' || searchQuery !== '';
 
   const statusOptions = [
     { value: 'AWAITING_DELIVERY', label: t('statuses.awaiting_delivery', 'Awaiting Delivery'), color: 'text-primary' },
@@ -301,13 +313,40 @@ export function SalesListClient({
       {/* Sales List (Trading Floor Ticker Style) */}
       <div className="grid gap-4">
         {sales.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 bg-white/5 py-24 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 mb-4">
-               <Search className="h-8 w-8 text-muted-foreground/50" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground">{t('sales.empty', 'No orders found')}</h3>
-            <p className="text-sm text-muted-foreground">{t('sales.emptyHint', 'Try adjusting your filters or search query.')}</p>
-          </div>
+          <EmptyStatePanel
+            icon={ShoppingCart}
+            eyebrow={t('sales.emptyEyebrow', 'Order queue')}
+            title={
+              hasFilters
+                ? t('sales.emptyFiltered', 'No orders match the current view')
+                : t('sales.empty', 'No orders found')
+            }
+            description={
+              hasFilters
+                ? t(
+                    'sales.emptyFilteredHint',
+                    'Clear one or more filters to widen the ledger, or open a fresh order from here.',
+                  )
+                : t(
+                    'sales.emptyHint',
+                    'Start with a new order to populate the live ledger, print queue, and delivery workflow.',
+                  )
+            }>
+            {hasFilters && (
+              <Button asChild variant="outline">
+                <Link href="/sales">
+                  <RefreshCw className="h-4 w-4" />
+                  {t('common.clearFilters', 'Clear filters')}
+                </Link>
+              </Button>
+            )}
+            <Button asChild className="brand-glow">
+              <Link href="/sales/new">
+                <Plus className="h-4 w-4" />
+                {t('nav.cta', 'New Order')}
+              </Link>
+            </Button>
+          </EmptyStatePanel>
         ) : (
           sales.map((sale) => {
             const shipping = (sale.shippingAddress ?? {}) as ShippingMeta;

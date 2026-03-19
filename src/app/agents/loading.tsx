@@ -1,6 +1,6 @@
-import { CardSkeleton } from '@/components/skeletons/card-skeleton';
+import { PageLoadingShell } from '@/components/ui/page-loading-shell';
 
 export default function Loading() {
-  return <CardSkeleton count={6} columns={3} />;
+  return <PageLoadingShell items={6} layout="cards" />;
 }
 
