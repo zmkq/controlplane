@@ -1,34 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { featureFlags } from '@/lib/env';
+import { getApplicationHealth } from '@/lib/ops-health';
 
 export async function GET() {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
+  const health = await getApplicationHealth();
 
-    return NextResponse.json({
-      status: 'ok',
-      database: 'ok',
-      features: {
-        imageUpload: featureFlags.imageUpload,
-        pushNotifications: featureFlags.pushNotifications,
-      },
-      checkedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('[health] Health check failed:', error);
-
-    return NextResponse.json(
-      {
-        status: 'degraded',
-        database: 'error',
-        features: {
-          imageUpload: featureFlags.imageUpload,
-          pushNotifications: featureFlags.pushNotifications,
-        },
-        checkedAt: new Date().toISOString(),
-      },
-      { status: 503 },
-    );
-  }
+  return NextResponse.json(health, {
+    status: health.status === 'ok' ? 200 : 503,
+  });
 }

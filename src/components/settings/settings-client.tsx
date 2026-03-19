@@ -3,13 +3,23 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppSettings } from '@prisma/client';
-import { Loader2, RotateCcw, Save } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Database,
+  Loader2,
+  RotateCcw,
+  Save,
+  WandSparkles,
+} from 'lucide-react';
 import { updateSettings } from '@/app/settings/actions';
 import { NotificationToggle } from '@/components/pwa/notification-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from '@/lib/i18n';
+import type { ApplicationHealth } from '@/lib/ops-health';
 import {
   DEFAULT_APP_SETTINGS,
   SUPPORTED_TIMEZONES,
@@ -65,8 +75,10 @@ function applyAccentPreview(brandColor: string) {
 
 export function SettingsClient({
   initialSettings,
+  operationsHealth,
 }: {
   initialSettings: AppSettings;
+  operationsHealth: ApplicationHealth;
 }) {
   const { t } = useTranslations();
   const router = useRouter();
@@ -188,6 +200,41 @@ export function SettingsClient({
       toast.success(t('settings.data.purge', 'Purge local drafts'));
     }
   };
+
+  const featureItems = [
+    {
+      key: 'database',
+      label: t('settings.operations.database', 'Database'),
+      value:
+        operationsHealth.database.status === 'ok'
+          ? `${operationsHealth.database.latencyMs ?? 0} ms`
+          : t('settings.operations.unavailable', 'Unavailable'),
+      state: operationsHealth.database.status,
+      icon: Database,
+    },
+    {
+      key: 'imageUpload',
+      label: t('settings.operations.imageUpload', 'Image uploads'),
+      value: getFeatureStateLabel(
+        operationsHealth.features.imageUpload,
+        t,
+      ),
+      state:
+        operationsHealth.features.imageUpload === 'enabled' ? 'ok' : 'error',
+      icon: WandSparkles,
+    },
+    {
+      key: 'push',
+      label: t('settings.operations.pushNotifications', 'Push notifications'),
+      value: getFeatureStateLabel(
+        operationsHealth.features.pushNotifications,
+        t,
+      ),
+      state:
+        operationsHealth.features.pushNotifications === 'enabled' ? 'ok' : 'error',
+      icon: Clock3,
+    },
+  ] as const;
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -384,6 +431,75 @@ export function SettingsClient({
 
         <section className="space-y-4">
           <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
+            {t('settings.operations.title', 'Operational Status')}
+          </h2>
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+            <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusPill
+                  state={operationsHealth.status === 'ok' ? 'ok' : 'error'}
+                  label={
+                    operationsHealth.status === 'ok'
+                      ? t('settings.operations.healthy', 'Healthy')
+                      : t('settings.operations.degraded', 'Degraded')
+                  }
+                />
+                <span className="text-sm text-muted-foreground">
+                  {t('settings.operations.environment', 'Environment')}: {operationsHealth.environment}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {t('settings.operations.version', 'Version')}: v{operationsHealth.version}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {featureItems.map(({ key, label, value, state, icon: Icon }) => (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-border/50 bg-background/70 p-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Icon className="h-4 w-4" />
+                      <span>{label}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-base font-semibold">{value}</p>
+                      <StatusDot state={state} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock3 className="h-4 w-4" />
+                <span>{t('settings.operations.runtime', 'Runtime')}</span>
+              </div>
+              <p className="mt-2 text-2xl font-semibold">
+                {formatDuration(operationsHealth.uptimeSeconds)}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('settings.operations.checkedAt', 'Last checked')}: {new Date(operationsHealth.checkedAt).toLocaleString()}
+              </p>
+              {operationsHealth.warnings.length > 0 && (
+                <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4" />
+                    {t('settings.operations.warnings', 'Operational warnings')}
+                  </div>
+                  <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    {operationsHealth.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
             {t('settings.notifications.title', 'Notifications')}
           </h2>
           <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
@@ -419,5 +535,69 @@ export function SettingsClient({
         </section>
       </div>
     </div>
+  );
+}
+
+function formatDuration(totalSeconds: number) {
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours === 0) {
+    return `${minutes}m`;
+  }
+
+  return `${hours}h ${minutes}m`;
+}
+
+function getFeatureStateLabel(
+  state: ApplicationHealth['features']['imageUpload'],
+  t: ReturnType<typeof useTranslations>['t'],
+) {
+  if (state === 'enabled') {
+    return t('settings.operations.enabled', 'Enabled');
+  }
+
+  if (state === 'partial') {
+    return t('settings.operations.partial', 'Partial');
+  }
+
+  return t('settings.operations.disabled', 'Disabled');
+}
+
+function StatusPill({
+  state,
+  label,
+}: {
+  state: 'ok' | 'error';
+  label: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${
+        state === 'ok'
+          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+          : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+      }`}>
+      {state === 'ok' ? (
+        <CheckCircle2 className="h-4 w-4" />
+      ) : (
+        <AlertTriangle className="h-4 w-4" />
+      )}
+      {label}
+    </span>
+  );
+}
+
+function StatusDot({ state }: { state: 'ok' | 'error' }) {
+  return (
+    <span
+      className={`h-2.5 w-2.5 rounded-full ${
+        state === 'ok' ? 'bg-emerald-400' : 'bg-amber-400'
+      }`}
+    />
   );
 }
