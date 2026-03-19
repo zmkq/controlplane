@@ -45,8 +45,8 @@ jobs:
       - name: Generate Prisma client
         run: bun run db:generate
 
-      - name: Apply migrations
-        run: bun run db:migrate --name ci --skip-generate
+      - name: Deploy migrations
+        run: bun run db:migrate:deploy
 
       - name: Seed demo data
         run: bun run db:seed
