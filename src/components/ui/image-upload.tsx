@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -144,16 +145,20 @@ export function ImageUpload({
     return (
       <div className={cn('relative group', className)}>
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/60 bg-background/40">
-          <img
+          <Image
             src={preview}
             alt="Product preview"
-            className="h-full w-full object-cover"
+            fill
+            sizes="(min-width: 1024px) 33vw, 100vw"
+            unoptimized={preview.startsWith('data:')}
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
           <Button
             type="button"
             variant="destructive"
             size="icon"
+            aria-label="Remove uploaded image"
             className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={handleRemove}
             disabled={isUploading}>
