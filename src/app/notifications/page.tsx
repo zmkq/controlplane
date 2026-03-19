@@ -63,6 +63,7 @@ export default async function NotificationsPage() {
         today,
         linkedOrders,
       }}
+      initialFetchedAt={new Date().toISOString()}
     />
   );
 }

@@ -15,29 +15,17 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  countUnreadTransitions,
+  markNotificationsRead,
+  type NotificationFeedResponse,
+  type NotificationRecord,
+  type NotificationStats,
+} from '@/lib/notifications';
 import { useTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-
-type NotificationRecord = {
-  id: string;
-  title: string;
-  body: string;
-  createdAt: string;
-  read: boolean;
-  saleOrder?: {
-    id: string;
-    orderNo: string;
-    customerName: string;
-  } | null;
-};
-
-type Stats = {
-  total: number;
-  unread: number;
-  today: number;
-  linkedOrders: number;
-};
+import { toast } from '@/lib/toast';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -64,48 +52,42 @@ const itemVariants = {
 export function NotificationsPageClient({
   initialNotifications,
   initialStats,
+  initialFetchedAt,
 }: {
   initialNotifications: NotificationRecord[];
-  initialStats: Stats;
+  initialStats: NotificationStats;
+  initialFetchedAt: string;
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [stats, setStats] = useState(initialStats);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'linked'>(
+    'all',
+  );
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(initialFetchedAt);
   const { t, lang } = useTranslations();
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/notifications', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to load notifications');
-      const data = (await response.json()) as NotificationRecord[];
-      setNotifications(data);
-
-      // Update stats
-      const now = new Date();
-      const today = data.filter((n) => {
-        const created = new Date(n.createdAt);
-        return (
-          created.getFullYear() === now.getFullYear() &&
-          created.getMonth() === now.getMonth() &&
-          created.getDate() === now.getDate()
-        );
-      }).length;
-
-      setStats({
-        total: data.length,
-        unread: data.filter((n) => !n.read).length,
-        today,
-        linkedOrders: data.filter((n) => Boolean(n.saleOrder)).length,
+      const response = await fetch('/api/notifications?limit=100', {
+        cache: 'no-store',
       });
+      if (!response.ok) throw new Error('Failed to load notifications');
+      const data = (await response.json()) as NotificationFeedResponse;
+      setNotifications(data.notifications);
+      setStats(data.stats);
+      setLastUpdatedAt(data.fetchedAt);
     } catch (error) {
       console.error(error);
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Failed to refresh notifications.',
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchNotifications();
@@ -121,6 +103,8 @@ export function NotificationsPageClient({
       filtered = filtered.filter((n) => !n.read);
     } else if (filter === 'read') {
       filtered = filtered.filter((n) => n.read);
+    } else if (filter === 'linked') {
+      filtered = filtered.filter((n) => Boolean(n.saleOrder));
     }
 
     // Apply search
@@ -140,34 +124,79 @@ export function NotificationsPageClient({
 
   const markAllRead = useCallback(async () => {
     if (!notifications.length) return;
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (!unreadIds.length) return;
+
+    const previousNotifications = notifications;
+    const updatedUnreadCount = countUnreadTransitions(notifications, unreadIds);
+
+    setNotifications(markNotificationsRead(notifications, unreadIds));
+    setStats((prev) => ({
+      ...prev,
+      unread: Math.max(prev.unread - updatedUnreadCount, 0),
+    }));
+
     try {
-      await fetch('/api/notifications', {
+      const response = await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ids: notifications.filter((n) => !n.read).map((n) => n.id),
+          ids: unreadIds,
         }),
       });
-      await fetchNotifications();
+      if (!response.ok) {
+        throw new Error('Failed to mark notifications as read');
+      }
     } catch (error) {
       console.error(error);
+      setNotifications(previousNotifications);
+      setStats((prev) => ({
+        ...prev,
+        unread: prev.unread + updatedUnreadCount,
+      }));
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Failed to update notifications.',
+      });
     }
-  }, [notifications, fetchNotifications]);
+  }, [notifications, t]);
 
   const markAsRead = useCallback(
     async (id: string) => {
+      const previousNotifications = notifications;
+      const updatedUnreadCount = countUnreadTransitions(notifications, [id]);
+
+      if (updatedUnreadCount === 0) {
+        return;
+      }
+
+      setNotifications(markNotificationsRead(notifications, [id]));
+      setStats((prev) => ({
+        ...prev,
+        unread: Math.max(prev.unread - updatedUnreadCount, 0),
+      }));
+
       try {
-        await fetch('/api/notifications', {
+        const response = await fetch('/api/notifications', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ids: [id] }),
         });
-        await fetchNotifications();
+        if (!response.ok) {
+          throw new Error('Failed to mark notification as read');
+        }
       } catch (error) {
         console.error(error);
+        setNotifications(previousNotifications);
+        setStats((prev) => ({
+          ...prev,
+          unread: prev.unread + updatedUnreadCount,
+        }));
+        toast.error(t('common.error', 'Something went wrong'), {
+          description: 'Failed to update notifications.',
+        });
       }
     },
-    [fetchNotifications]
+    [notifications, t]
   );
 
   return (
@@ -203,6 +232,10 @@ export function NotificationsPageClient({
                     'notifications.heroSubtitle',
                     'Limited stock triggers, partner pings, and courier handoffs in one feed.'
                   )}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground/80">
+                  {t('notifications.lastSync', 'Last sync')}{' '}
+                  {formatRelativeTime(lastUpdatedAt, lang)}
                 </p>
               </div>
             </div>
@@ -300,7 +333,7 @@ export function NotificationsPageClient({
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <div className="flex rounded-xl border border-border/60 bg-background/60 p-1">
-              {(['all', 'unread', 'read'] as const).map((f) => (
+              {(['all', 'unread', 'read', 'linked'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}

@@ -5,20 +5,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CheckCircle2, Loader2, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslations } from '@/lib/i18n';
+import {
+  markNotificationsRead,
+  type NotificationFeedResponse,
+  type NotificationRecord,
+} from '@/lib/notifications';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
-
-type NotificationRecord = {
-  id: string;
-  title: string;
-  body: string;
-  createdAt: string;
-  read: boolean;
-  saleOrder?: {
-    id: string;
-    orderNo: string;
-    customerName: string;
-  } | null;
-};
 
 const panelVariants = {
   hidden: { opacity: 0, y: 12 },
@@ -32,24 +25,26 @@ export function NotificationsHub() {
   const { t, lang } = useTranslations();
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const response = await fetch('/api/notifications', { cache: 'no-store' });
+      const response = await fetch('/api/notifications?limit=25', {
+        cache: 'no-store',
+      });
       if (!response.ok) throw new Error('Failed to load notifications');
-      const data = (await response.json()) as NotificationRecord[];
-      setNotifications(
-        data.map((item) => ({
-          ...item,
-          createdAt: item.createdAt,
-        })),
-      );
+      const data = (await response.json()) as NotificationFeedResponse;
+      setNotifications(data.notifications);
+      setLastUpdatedAt(data.fetchedAt);
     } catch (error) {
       console.error(error);
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Failed to refresh notifications.',
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchNotifications();
@@ -92,23 +87,34 @@ export function NotificationsHub() {
 
   const markAllRead = useCallback(async () => {
     if (!notifications.length) return;
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (!unreadIds.length) return;
+
+    const previousNotifications = notifications;
+    setNotifications(markNotificationsRead(notifications, unreadIds));
+
     try {
-      await fetch('/api/notifications', {
+      const response = await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ids: notifications.filter((n) => !n.read).map((n) => n.id),
+          ids: unreadIds,
         }),
       });
-      await fetchNotifications();
+      if (!response.ok) {
+        throw new Error('Failed to update notifications');
+      }
     } catch (error) {
       console.error(error);
+      setNotifications(previousNotifications);
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Failed to update notifications.',
+      });
     }
-  }, [notifications, fetchNotifications]);
+  }, [notifications, t]);
 
   const renderMobileContent = () => {
-    const lastSyncSource =
-      notifications[0]?.createdAt ?? new Date().toISOString();
+    const lastSyncSource = lastUpdatedAt ?? new Date().toISOString();
 
     return (
       <div className="flex h-full min-h-0 flex-col">
@@ -210,8 +216,7 @@ export function NotificationsHub() {
   };
 
   const renderDesktopContent = () => {
-    const lastSyncSource =
-      notifications[0]?.createdAt ?? new Date().toISOString();
+    const lastSyncSource = lastUpdatedAt ?? new Date().toISOString();
 
     return (
       <div className="flex h-full flex-col gap-4">
