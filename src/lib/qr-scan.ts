@@ -13,7 +13,25 @@ export interface QRScanSession {
   expiresAt: Date;
 }
 
+type QRScanSessionRow = Omit<
+  QRScanSession,
+  'createdAt' | 'updatedAt' | 'expiresAt'
+> & {
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  expiresAt: string | Date;
+};
+
 const SESSION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+
+function toSession(row: QRScanSessionRow): QRScanSession {
+  return {
+    ...row,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+    expiresAt: new Date(row.expiresAt),
+  };
+}
 
 /**
  * Create a new QR scan session
@@ -49,27 +67,28 @@ export async function createScanSession(deviceId: string): Promise<QRScanSession
  * Get session by ID
  */
 export async function getScanSession(sessionId: string): Promise<QRScanSession | null> {
-  const sessions = await prisma.$queryRaw<any[]>`
+  const sessions = await prisma.$queryRaw<QRScanSessionRow[]>`
     SELECT "id", "deviceId", "status", "scannedValue", "createdAt", "updatedAt", "expiresAt"
     FROM "QRScanSession"
     WHERE "id" = ${sessionId}
     LIMIT 1
   `;
 
-  const session = sessions[0];
-  if (!session) return null;
+  const sessionRow = sessions[0];
+  if (!sessionRow) return null;
+  const session = toSession(sessionRow);
 
   // Check if expired
-  if (new Date(session.expiresAt) < new Date() && session.status === 'PENDING') {
+  if (session.expiresAt < new Date() && session.status === 'PENDING') {
     await prisma.$executeRaw`
       UPDATE "QRScanSession"
       SET "status" = 'EXPIRED', "updatedAt" = NOW()
       WHERE "id" = ${sessionId}
     `;
-    return { ...session, status: 'EXPIRED' } as QRScanSession;
+    return { ...session, status: 'EXPIRED', updatedAt: new Date() };
   }
 
-  return session as QRScanSession;
+  return session;
 }
 
 /**
