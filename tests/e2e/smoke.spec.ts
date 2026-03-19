@@ -5,6 +5,12 @@ test('health endpoint is reachable', async ({ request }) => {
   expect([200, 503]).toContain(response.status());
 });
 
+test('manifest is reachable without authentication', async ({ request }) => {
+  const response = await request.get('/manifest.webmanifest');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('application/manifest+json');
+});
+
 test('login screen renders Controlplane branding', async ({ page }) => {
   await page.goto('/login');
   await expect(
