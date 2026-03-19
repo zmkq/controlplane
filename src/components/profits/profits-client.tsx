@@ -81,21 +81,22 @@ export function ProfitsClient({
   const { t } = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const shouldAutoOpenStory = searchParams.get('showStory') === 'true';
   const [showCustomDates, setShowCustomDates] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [isStoryOpen, setIsStoryOpen] = useState(false);
+  const [isStoryOpen, setIsStoryOpen] = useState(shouldAutoOpenStory);
 
-  // Check for showStory param
   useEffect(() => {
-    if (searchParams.get('showStory') === 'true') {
-      setIsStoryOpen(true);
-      // Clean up URL without refreshing
+    if (shouldAutoOpenStory) {
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete('showStory');
-      router.replace(`/profits?${newParams.toString()}`, { scroll: false });
+      const nextQuery = newParams.toString();
+      router.replace(`/profits${nextQuery ? `?${nextQuery}` : ''}`, {
+        scroll: false,
+      });
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, shouldAutoOpenStory]);
 
   const periodOptions = [
     { value: 'week', label: 'Last Week' },
@@ -116,17 +117,16 @@ export function ProfitsClient({
     if (period !== 'all') {
       params.set('period', period);
     }
-    // Trigger story
-    params.set('showStory', 'true');
     router.push(`/profits${params.toString() ? `?${params.toString()}` : ''}`);
+    setIsStoryOpen(true);
   };
 
   const handleCustomDateApply = () => {
     const params = new URLSearchParams();
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
-    params.set('showStory', 'true');
     router.push(`/profits${params.toString() ? `?${params.toString()}` : ''}`);
+    setIsStoryOpen(true);
   };
 
   const handleClearDates = () => {
