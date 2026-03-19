@@ -24,8 +24,8 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controlplane
-      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/controlplane
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controlplane?sslmode=disable
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/controlplane?sslmode=disable
       AUTH_SECRET: ci-controlplane-secret
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       DEMO_ADMIN_USERNAME: demo
