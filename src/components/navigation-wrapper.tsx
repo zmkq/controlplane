@@ -22,9 +22,9 @@ export function NavigationWrapper({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main
         id="main-content"
-        className="flex-1 pb-[calc(112px+var(--safe-bottom))] pt-[calc(var(--nav-height)+var(--safe-top))] lg:pl-72"
+        className="min-w-0 flex-1 pb-[calc(104px+var(--safe-bottom))] pt-[calc(var(--nav-height)+var(--safe-top)+0.75rem)] lg:pl-[calc(var(--sidebar-width)+1.5rem)] xl:pl-[calc(var(--sidebar-width)+2rem)]"
       >
-        <div className="page-shell lg:pr-10 lg:pt-6">
+        <div className="page-shell w-full lg:px-0 lg:pr-8 lg:pt-4 xl:pr-10 xl:pt-6">
           {children}
         </div>
       </main>

@@ -46,6 +46,7 @@
 
 :root {
   --radius: 1.25rem;
+  color-scheme: dark;
 
   /* Deep Space Dark Theme */
   --background: #02030a;
@@ -107,6 +108,20 @@
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
   --nav-height: 72px;
+  --sidebar-width: 18rem;
+  --content-max-width: 1400px;
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --sidebar-width: 19rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  :root {
+    --sidebar-width: 20rem;
+  }
 }
 
 .dark {
@@ -239,6 +254,8 @@
     line-height: 1.6;
     position: relative;
     overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: contain;
   }
 
   /* Living Background Layer with enhanced "Nano" vibrancy */
@@ -318,6 +335,23 @@
     color: var(--primary-foreground);
   }
 
+  :where(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      summary,
+      [role='button'],
+      [role='link'],
+      [role='switch'],
+      [tabindex]:not([tabindex='-1'])
+    ):focus-visible {
+    outline: 2px solid rgba(219, 236, 10, 0.72);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgba(219, 236, 10, 0.12);
+  }
+
   /* Scrollbar */
   ::-webkit-scrollbar {
     width: 4px;
@@ -336,7 +370,7 @@
 
   .page-shell {
     width: 100%;
-    max-width: min(1400px, calc(100% - 1.5rem));
+    max-width: min(var(--content-max-width), calc(100% - 1rem));
     margin-inline: auto;
     padding-inline: clamp(1rem, 4vw, 2rem);
   }
@@ -490,5 +524,19 @@
   .touch-target {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

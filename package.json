@@ -11,12 +11,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "db:generate": "prisma generate",
+    "db:setup": "bun run db:generate && bun run db:migrate && bun run db:seed",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force --skip-generate",
-    "ci": "bun run lint && bun run typecheck && bun run test && bun run build",
+    "ci": "bun run check && bun run build",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -9,18 +9,17 @@
 
 ```bash
 bun install
-bun run db:migrate
-bun run db:seed
+bun run db:setup
 bun run dev
 ```
 
 Use `bun run db:migrate` for local development only. For CI, staging, or production verification, use `bun run db:migrate:deploy`.
 
+If you are on PowerShell, use `Copy-Item .env.example .env.local` instead of `cp`.
+
 ## Before opening a pull request
 
-- Run `bun run lint`
-- Run `bun run typecheck`
-- Run `bun run test`
+- Run `bun run check`
 - Run `bun run build`
 
 ## Pull request expectations

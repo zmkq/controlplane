@@ -70,12 +70,16 @@ bun install
 cp .env.example .env.local
 ```
 
+PowerShell equivalent:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
 Fill in the required variables in `.env.local`, then run:
 
 ```bash
-bun run db:generate
-bun run db:migrate
-bun run db:seed
+bun run db:setup
 bun run dev
 ```
 
@@ -153,6 +157,7 @@ Useful commands:
 
 ```bash
 bun run dev
+bun run check
 bun run lint
 bun run typecheck
 bun run test
@@ -164,6 +169,7 @@ Database commands:
 
 ```bash
 bun run db:generate
+bun run db:setup
 bun run db:migrate
 bun run db:migrate:deploy
 bun run db:seed
@@ -171,6 +177,12 @@ bun run db:reset
 ```
 
 Full local gate:
+
+```bash
+bun run check
+```
+
+Full release gate:
 
 ```bash
 bun run ci
@@ -243,12 +255,14 @@ bun run build
 - `bun run typecheck`: run TypeScript without emitting files.
 - `bun run test`: run Vitest unit tests.
 - `bun run test:e2e`: run Playwright smoke tests.
+- `bun run check`: run the local verification gate (`lint`, `typecheck`, `test`).
 - `bun run db:generate`: run `prisma generate`.
+- `bun run db:setup`: generate the Prisma client, run local migrations, and seed demo data.
 - `bun run db:migrate`: run `prisma migrate dev` for local development.
 - `bun run db:migrate:deploy`: run `prisma migrate deploy` for CI, staging, and production.
 - `bun run db:seed`: seed demo-safe local data.
 - `bun run db:reset`: reset and recreate the local database.
-- `bun run ci`: run the local release gate sequence.
+- `bun run ci`: run the full release gate (`check` + `build`).
 
 ## Open-Source Maintenance :handshake:
 

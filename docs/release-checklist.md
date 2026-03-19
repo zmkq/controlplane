@@ -2,9 +2,7 @@
 
 - Secrets removed from tracked files and rotated outside the repo.
 - `.env.example` matches the real runtime contract.
-- `bun run lint` passes.
-- `bun run typecheck` passes.
-- `bun run test` passes.
+- `bun run check` passes.
 - `bun run build` passes.
 - CI/staging uses `bun run db:migrate:deploy`, not `bun run db:migrate`.
 - `/api/health` returns `ok` on staging.
