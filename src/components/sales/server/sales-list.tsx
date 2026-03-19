@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { fetchSalesWithFilters } from '@/lib/cache';
 import { SalesListClient } from '@/components/sales/client/sales-list-client';
+import { GlassSkeleton } from '@/components/ui/glass-skeleton';
 
 type SalesListProps = {
   channelFilter: string;
@@ -58,14 +59,27 @@ export async function SalesList({
 
 export function SalesListSkeleton() {
   return (
-    <div className="space-y-4">
-       {/* Fake Filter Bar */}
-       <div className="h-16 w-full rounded-3xl border border-white/5 bg-white/5 animate-pulse" />
-       
-       {/* Fake List Items */}
-       {[1, 2, 3, 4, 5].map((i) => (
-         <div key={i} className="h-24 w-full rounded-[2rem] bg-white/5 animate-pulse" />
-       ))}
+    <div className="space-y-6">
+      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <GlassSkeleton className="h-12 w-full rounded-[1.25rem] xl:max-w-md" />
+          <div className="flex gap-2 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <GlassSkeleton
+                key={index}
+                className="h-10 min-w-24 rounded-xl border border-white/5"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {[1, 2, 3, 4, 5].map((i) => (
+        <GlassSkeleton
+          key={i}
+          className="h-32 w-full rounded-[2rem] border border-white/5"
+        />
+      ))}
     </div>
   );
 }

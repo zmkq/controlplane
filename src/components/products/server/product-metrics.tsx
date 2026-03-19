@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { GlassSkeleton } from '@/components/ui/glass-skeleton';
 import {
   LOW_STOCK_THRESHOLD,
   getProductFulfillmentMode,
@@ -291,16 +292,30 @@ function MetricTile({
 export function ProductMetricsSkeleton() {
   return (
     <div className="space-y-8">
-      <div className="rounded-[2rem] border border-white/5 bg-white/5 p-6">
-        <div className="space-y-3">
-          <div className="h-4 w-24 animate-pulse rounded bg-white/5" />
-          <div className="h-10 w-64 animate-pulse rounded bg-white/5" />
-          <div className="h-4 w-full max-w-2xl animate-pulse rounded bg-white/5" />
+      <div className="glass-panel rounded-[2rem] border border-white/5 p-6">
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <GlassSkeleton className="h-7 w-32 rounded-full" />
+            <GlassSkeleton className="h-7 w-28 rounded-full" />
+          </div>
+          <GlassSkeleton className="h-10 w-full max-w-[22rem] rounded-2xl" />
+          <GlassSkeleton className="h-4 w-full max-w-2xl" />
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <GlassSkeleton
+                key={index}
+                className="h-8 w-28 rounded-full border border-white/5"
+              />
+            ))}
+          </div>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 animate-pulse rounded-2xl bg-white/5" />
+          <GlassSkeleton
+            key={i}
+            className="h-32 rounded-2xl border border-white/5"
+          />
         ))}
       </div>
     </div>

@@ -5,16 +5,20 @@ export function DashboardSkeleton() {
     <div className="space-y-6 sm:space-y-8">
       <section className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-4">
-            <GlassSkeleton className="h-8 w-36 rounded-full" />
-            <GlassSkeleton className="h-10 w-64" />
+          <div className="max-w-3xl space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <GlassSkeleton className="h-7 w-32 rounded-full" />
+              <GlassSkeleton className="h-7 w-20 rounded-full" />
+            </div>
+            <GlassSkeleton className="h-10 w-full max-w-[20rem] rounded-2xl sm:max-w-[26rem]" />
             <GlassSkeleton className="h-4 w-[min(32rem,90vw)]" />
+            <GlassSkeleton className="h-4 w-[min(24rem,80vw)]" />
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:w-[34rem]">
             {Array.from({ length: 3 }).map((_, i) => (
               <GlassSkeleton
                 key={i}
-                className="h-32 w-full rounded-[1.5rem]"
+                className="h-28 w-full rounded-[1.5rem]"
               />
             ))}
           </div>
@@ -28,7 +32,7 @@ export function DashboardSkeleton() {
             className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-6"
           >
             <GlassSkeleton className="h-4 w-24" />
-            <GlassSkeleton className="mt-4 h-12 w-32" />
+            <GlassSkeleton className="mt-4 h-12 w-32 rounded-2xl" />
             <GlassSkeleton className="mt-3 h-3 w-20" />
           </div>
         ))}
@@ -40,7 +44,7 @@ export function DashboardSkeleton() {
             key={i}
             className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-8"
           >
-            <GlassSkeleton className="h-6 w-40" />
+            <GlassSkeleton className="h-6 w-40 rounded-xl" />
             <GlassSkeleton className="mt-8 h-64 w-full rounded-xl" />
           </div>
         ))}
