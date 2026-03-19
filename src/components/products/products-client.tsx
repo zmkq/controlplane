@@ -8,7 +8,15 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, X, Package, Users } from 'lucide-react';
+import {
+  Package,
+  PackageSearch,
+  Plus,
+  RotateCcw,
+  SlidersHorizontal,
+  Users,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { deleteProductAction, upsertProduct } from '@/app/products/actions';
@@ -87,12 +95,14 @@ const productSchema = z.object({
 export function ProductsClient({
   products: initialProducts,
   suppliers,
+  currentQuery = '',
   currentType = '',
   currentSupplier = '',
   currentFulfillmentMode = '',
 }: {
   products: Product[];
   suppliers: { id: string; name: string }[];
+  currentQuery?: string;
   currentType?: string;
   currentSupplier?: string;
   currentFulfillmentMode?: string;
@@ -176,6 +186,30 @@ export function ProductsClient({
 
     return groups;
   }, [products]);
+
+  const hasActiveFilters = Boolean(
+    currentQuery || currentType || currentSupplier || currentFulfillmentMode
+  );
+  const activeSupplierName =
+    suppliers.find((supplier) => supplier.id === currentSupplier)?.name ??
+    currentSupplier;
+
+  const updateFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+
+    const query = params.toString();
+    router.push(query ? `/products?${query}` : '/products');
+  };
+
+  const resetFilters = () => {
+    router.push('/products');
+  };
 
   const handleBulkAction = async (action: 'delete' | 'deactivate') => {
     if (!confirm(`Are you sure you want to ${action} ${selectedIds.length} products?`)) return;
@@ -852,7 +886,7 @@ export function ProductsClient({
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 transform">
+        <div className="fixed bottom-[calc(6.5rem+var(--safe-bottom))] left-1/2 z-50 -translate-x-1/2 transform md:bottom-6">
           <div className="flex items-center gap-4 rounded-full border border-white/10 bg-black/80 px-6 py-3 shadow-2xl backdrop-blur-xl">
             <span className="text-sm font-medium text-white">
               {selectedIds.length} selected
@@ -885,72 +919,110 @@ export function ProductsClient({
 
       {/* Product Grid */}
       <section className="space-y-8">
-        {/* Filters and Add Button */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Filter Dropdowns */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Type Filter */}
-            <select 
-              value={currentType}
-              onChange={(e) => {
-                const params = new URLSearchParams(window.location.search);
-                if (e.target.value) {
-                  params.set('type', e.target.value);
-                } else {
-                  params.delete('type');
-                }
-                router.push(`/products?${params.toString()}`);
-              }}
-              className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">All Types</option>
-              <option value="PROTEIN_POWDER">Protein Powder</option>
-              <option value="CREATINE">Creatine</option>
-              <option value="PRE_WORKOUT">Pre-Workout</option>
-              <option value="AMINO_ACIDS">Amino Acids</option>
-              <option value="VITAMINS">Vitamins</option>
-              <option value="ACCESSORIES">Accessories</option>
-              <option value="OTHER">Other</option>
-            </select>
+        <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+                Refine view
+              </div>
 
-            {/* Supplier Filter */}
-            <select
-              value={currentSupplier}
-              onChange={(e) => {
-                const params = new URLSearchParams(window.location.search);
-                if (e.target.value) {
-                  params.set('supplier', e.target.value);
-                } else {
-                  params.delete('supplier');
+              <select
+                value={currentType}
+                onChange={(e) => updateFilter('type', e.target.value)}
+                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All Types</option>
+                <option value="PROTEIN_POWDER">Protein Powder</option>
+                <option value="CREATINE">Creatine</option>
+                <option value="PRE_WORKOUT">Pre-Workout</option>
+                <option value="AMINO_ACIDS">Amino Acids</option>
+                <option value="VITAMINS">Vitamins</option>
+                <option value="ACCESSORIES">Accessories</option>
+                <option value="OTHER">Other</option>
+              </select>
+
+              <select
+                value={currentSupplier}
+                onChange={(e) => updateFilter('supplier', e.target.value)}
+                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All Suppliers</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={currentFulfillmentMode}
+                onChange={(e) =>
+                  updateFilter('fulfillmentMode', e.target.value)
                 }
-                router.push(`/products?${params.toString()}`);
-              }}
-              className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">All Suppliers</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
+                className="h-10 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-foreground hover:border-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">All Fulfillment</option>
+                <option value="limited">Limited Stock</option>
+                <option value="on-demand">On-Demand</option>
+              </select>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={resetFilters}
+                  className="border border-white/10 bg-white/5 hover:bg-white/10">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+
+              <Button
+                variant={isSelectionMode ? 'secondary' : 'outline'}
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedIds([]); // Clear selection when exiting
+                }}
+                className="border-white/10 bg-white/5 hover:bg-white/10">
+                {isSelectionMode ? 'Cancel Selection' : 'Select'}
+              </Button>
+
+              <Button onClick={() => openSheet(null)} className="brand-glow">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </div>
           </div>
 
-            <Button
-              variant={isSelectionMode ? "secondary" : "outline"}
-              onClick={() => {
-                setIsSelectionMode(!isSelectionMode);
-                if (isSelectionMode) setSelectedIds([]); // Clear selection when exiting
-              }}
-              className="border-white/10 bg-white/5 hover:bg-white/10"
-            >
-              {isSelectionMode ? 'Cancel Selection' : 'Select'}
-            </Button>
-
-            <Button onClick={() => openSheet(null)} className="brand-glow">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2">
+              {currentQuery && (
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  Search: {currentQuery}
+                </span>
+              )}
+              {currentType && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  Type: {currentType.replaceAll('_', ' ')}
+                </span>
+              )}
+              {currentSupplier && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  Supplier: {activeSupplierName}
+                </span>
+              )}
+              {currentFulfillmentMode && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  Fulfillment:{' '}
+                  {currentFulfillmentMode === 'on-demand'
+                    ? 'On-Demand'
+                    : 'Limited Stock'}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Grouped Products */}
@@ -1011,16 +1083,32 @@ export function ProductsClient({
           })}
 
           {products.length === 0 && (
-            <div className="flex h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/5 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-                <Search className="h-6 w-6 text-muted-foreground" />
+            <div className="flex min-h-[20rem] flex-col items-center justify-center rounded-[2rem] border border-dashed border-white/10 bg-white/5 px-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <PackageSearch className="h-6 w-6 text-muted-foreground" />
               </div>
               <h3 className="mt-4 text-lg font-medium text-foreground">
-                No products found
+                {hasActiveFilters
+                  ? 'No products match the current filters'
+                  : 'No products added yet'}
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Try adjusting your search or filters.
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                {hasActiveFilters
+                  ? 'Clear one or more filters to widen the list, or add a new SKU directly from here.'
+                  : 'Start with your first SKU to populate inventory cards, low-stock monitoring, and quick edit actions.'}
               </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={resetFilters}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Clear Filters
+                  </Button>
+                )}
+                <Button onClick={() => openSheet(null)} className="brand-glow">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Product
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductType } from '@prisma/client';
 import { ProductsClient } from '@/components/products/products-client';
+import {
+  getProductFulfillmentMode,
+  matchesProductFulfillmentMode,
+} from '@/lib/product-filters';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -20,7 +24,7 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
     ];
   }
   
-  if (typeValue) where.type = typeValue as any;
+  if (typeValue) where.type = typeValue as ProductType;
   if (supplierValue) where.supplierProducts = { some: { supplierId: supplierValue } };
 
   const [products, suppliers] = await Promise.all([
@@ -34,27 +38,33 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
     })
   ]);
 
-  const serializedProducts = products.map((product) => {
-    const attributes =
-      product.attributes && typeof product.attributes === 'object' && !Array.isArray(product.attributes)
-        ? (product.attributes as any as { fulfillmentMode?: string })
-        : {};
-    const fulfillmentMode: 'limited' | 'on-demand' =
-      attributes.fulfillmentMode === 'on-demand' ? 'on-demand' : 'limited';
-    return {
-      ...product,
-      cost: Number(product.cost ?? 0),
-      price: product.price ? Number(product.price) : undefined,
-      updatedAt: product.updatedAt.toISOString(),
-      fulfillmentMode,
-      attributes: product.attributes as any,
-    };
-  });
+  const serializedProducts = products
+    .filter((product) =>
+      matchesProductFulfillmentMode(product.attributes, fulfillmentModeValue)
+    )
+    .map((product) => {
+      const normalizedAttributes =
+        product.attributes &&
+        typeof product.attributes === 'object' &&
+        !Array.isArray(product.attributes)
+          ? (product.attributes as { shakerCount?: number })
+          : undefined;
+
+      return {
+        ...product,
+        cost: Number(product.cost ?? 0),
+        price: product.price ? Number(product.price) : undefined,
+        updatedAt: product.updatedAt.toISOString(),
+        fulfillmentMode: getProductFulfillmentMode(product.attributes),
+        attributes: normalizedAttributes,
+      };
+    });
 
   return (
     <ProductsClient
       products={serializedProducts}
       suppliers={suppliers}
+      currentQuery={searchQuery}
       currentType={typeValue || ''}
       currentSupplier={supplierValue || ''}
       currentFulfillmentMode={fulfillmentModeValue || ''}
@@ -65,6 +75,11 @@ export async function ProductList({ searchParams }: { searchParams: SearchParams
 export function ProductListSkeleton() {
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-10 rounded-xl bg-white/5 animate-pulse" />
+        ))}
+      </div>
       {[1, 2, 3, 4].map(i => (
         <div key={i} className="h-24 rounded-2xl bg-white/5 animate-pulse" />
       ))}
