@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from '@/lib/i18n';
 import { format } from 'date-fns';
@@ -30,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
+import { useDebounce } from '@/hooks/use-debounce';
 
 import { createSale } from './actions';
 
@@ -113,6 +114,85 @@ type ProductOption = Option & {
 };
 
 type AgentOption = Option & { leadTime: number };
+type DuplicateOrderResponse = {
+  lines?: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    unitCost?: number;
+  }>;
+};
+
+type RedirectLikeError = {
+  digest?: string;
+};
+
+const NEW_SALE_DRAFT_KEY = 'controlplane:new-sale-draft:v1';
+
+type NewSaleDraft = {
+  version: 1;
+  savedAt: string;
+  currentStep: number;
+  channel: string;
+  customerName: string;
+  city: string;
+  orderReference: string;
+  contactNumber: string;
+  lineItems: LineItem[];
+  fulfillmentType: 'limited' | 'on-demand';
+  partner: string;
+  deliveryDate?: string;
+  deliveryMethod: 'delivery' | 'pickup';
+  deliveryFee: number;
+  address: string;
+  pickupLocation: string;
+  notes: string;
+  acknowledged: boolean;
+  isExpedited: boolean;
+};
+
+function parseDraft(rawDraft: string): NewSaleDraft | null {
+  try {
+    const parsed = JSON.parse(rawDraft) as Partial<NewSaleDraft>;
+
+    if (parsed.version !== 1 || typeof parsed.savedAt !== 'string') {
+      return null;
+    }
+
+    return {
+      version: 1,
+      savedAt: parsed.savedAt,
+      currentStep:
+        typeof parsed.currentStep === 'number' ? parsed.currentStep : 0,
+      channel: typeof parsed.channel === 'string' ? parsed.channel : 'instagram',
+      customerName:
+        typeof parsed.customerName === 'string' ? parsed.customerName : '',
+      city: typeof parsed.city === 'string' ? parsed.city : '',
+      orderReference:
+        typeof parsed.orderReference === 'string' ? parsed.orderReference : '',
+      contactNumber:
+        typeof parsed.contactNumber === 'string' ? parsed.contactNumber : '',
+      lineItems: Array.isArray(parsed.lineItems) ? parsed.lineItems : [],
+      fulfillmentType:
+        parsed.fulfillmentType === 'on-demand' ? 'on-demand' : 'limited',
+      partner: typeof parsed.partner === 'string' ? parsed.partner : '',
+      deliveryDate:
+        typeof parsed.deliveryDate === 'string' ? parsed.deliveryDate : undefined,
+      deliveryMethod:
+        parsed.deliveryMethod === 'pickup' ? 'pickup' : 'delivery',
+      deliveryFee:
+        typeof parsed.deliveryFee === 'number' ? parsed.deliveryFee : 2,
+      address: typeof parsed.address === 'string' ? parsed.address : '',
+      pickupLocation:
+        typeof parsed.pickupLocation === 'string' ? parsed.pickupLocation : '',
+      notes: typeof parsed.notes === 'string' ? parsed.notes : '',
+      acknowledged: Boolean(parsed.acknowledged),
+      isExpedited: Boolean(parsed.isExpedited),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default function NewSaleForm({
   products,
@@ -333,7 +413,46 @@ export default function NewSaleForm({
   const [showProgress, setShowProgress] = useState(false);
   const [progressStep, setProgressStep] = useState<ProgressStep>('validating');
   const [progressError, setProgressError] = useState<string>();
-  const router = useRouter();
+  const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+
+  const hasSearchPrefill = useMemo(
+    () =>
+      [
+        'channel',
+        'customerName',
+        'city',
+        'orderReference',
+        'contactNumber',
+        'deliveryMethod',
+        'deliveryFee',
+        'address',
+        'pickupLocation',
+        'notes',
+        'isExpedited',
+        'partnerId',
+        'fulfillmentType',
+        'deliveryDate',
+      ].some((key) => {
+        const value = data[key];
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+
+        return typeof value === 'string' && value.length > 0;
+      }),
+    [data],
+  );
+
+  const clearDraftStorage = () => {
+    localStorage.removeItem(NEW_SALE_DRAFT_KEY);
+    setDraftSavedAt(null);
+  };
+
+  const resetDraftAndReload = () => {
+    clearDraftStorage();
+    window.location.assign('/sales/new');
+  };
 
   const productLookup = useMemo(() => {
     const map = new Map<string, ProductOption>();
@@ -397,11 +516,11 @@ export default function NewSaleForm({
       try {
         const response = await fetch(`/api/sales/${duplicateId}/duplicate`);
         if (!response.ok) throw new Error('Failed to load order');
-        const data = await response.json();
+        const data = (await response.json()) as DuplicateOrderResponse;
 
         if (data.lines && Array.isArray(data.lines)) {
           const items: LineItem[] = data.lines.map(
-            (line: any, index: number) => ({
+            (line, index: number) => ({
               id: `duplicate-${index}-${Date.now()}`,
               productId: line.productId,
               quantity: line.quantity,
@@ -468,12 +587,136 @@ export default function NewSaleForm({
     [agents, partner],
   );
 
+  const draftSnapshot = useMemo<NewSaleDraft>(
+    () => ({
+      version: 1,
+      savedAt: new Date().toISOString(),
+      currentStep,
+      channel,
+      customerName,
+      city,
+      orderReference,
+      contactNumber,
+      lineItems,
+      fulfillmentType,
+      partner,
+      deliveryDate: deliveryDate?.toISOString(),
+      deliveryMethod,
+      deliveryFee,
+      address,
+      pickupLocation,
+      notes,
+      acknowledged,
+      isExpedited,
+    }),
+    [
+      acknowledged,
+      address,
+      channel,
+      city,
+      contactNumber,
+      currentStep,
+      customerName,
+      deliveryDate,
+      deliveryFee,
+      deliveryMethod,
+      fulfillmentType,
+      isExpedited,
+      lineItems,
+      notes,
+      orderReference,
+      partner,
+      pickupLocation,
+    ],
+  );
+
+  const debouncedDraftSnapshot = useDebounce(draftSnapshot, 600);
+  const hasMeaningfulDraftData =
+    currentStep > 0 ||
+    lineItems.length > 0 ||
+    Boolean(customerName.trim()) ||
+    Boolean(contactNumber.trim()) ||
+    Boolean(orderReference.trim()) ||
+    Boolean(address.trim()) ||
+    Boolean(city.trim()) ||
+    Boolean(pickupLocation.trim()) ||
+    Boolean(notes.trim());
+
   const deliveryCopy =
     fulfillmentType === 'limited'
       ? isExpedited
         ? t('newSale.fulfillment.expressRider', 'Express rider (<3h)')
         : deliveryWindow
       : `${deliveryWindow} ${t('common.time.via', 'via')} ${selectedAgent?.label ?? t('newSale.fulfillment.partner', 'partner')}`;
+
+  useEffect(() => {
+    if (draftReady) {
+      return;
+    }
+
+    const shouldSkipRestore = duplicateId || hasSearchPrefill;
+
+    if (shouldSkipRestore) {
+      setDraftReady(true);
+      return;
+    }
+
+    const rawDraft = localStorage.getItem(NEW_SALE_DRAFT_KEY);
+
+    if (!rawDraft) {
+      setDraftReady(true);
+      return;
+    }
+
+    const parsedDraft = parseDraft(rawDraft);
+    if (!parsedDraft) {
+      localStorage.removeItem(NEW_SALE_DRAFT_KEY);
+      setDraftReady(true);
+      return;
+    }
+
+    setCurrentStep(parsedDraft.currentStep);
+    setChannel(parsedDraft.channel);
+    setCustomerName(parsedDraft.customerName);
+    setCity(parsedDraft.city);
+    setOrderReference(parsedDraft.orderReference);
+    setContactNumber(parsedDraft.contactNumber);
+    setLineItems(parsedDraft.lineItems);
+    setFulfillmentType(parsedDraft.fulfillmentType);
+    setPartner(parsedDraft.partner || agents[0]?.value || '');
+    setDeliveryDate(
+      parsedDraft.deliveryDate ? new Date(parsedDraft.deliveryDate) : undefined,
+    );
+    setDeliveryMethod(parsedDraft.deliveryMethod);
+    setDeliveryFee(parsedDraft.deliveryFee);
+    setAddress(parsedDraft.address);
+    setPickupLocation(parsedDraft.pickupLocation);
+    setNotes(parsedDraft.notes);
+    setAcknowledged(parsedDraft.acknowledged);
+    setIsExpedited(parsedDraft.isExpedited);
+    setDraftSavedAt(new Date(parsedDraft.savedAt));
+    setDraftReady(true);
+    toast.info(t('newSale.draft.restored', 'Draft restored'), {
+      description: format(new Date(parsedDraft.savedAt), 'PP p'),
+    });
+  }, [agents, draftReady, duplicateId, hasSearchPrefill, t]);
+
+  useEffect(() => {
+    if (!draftReady) {
+      return;
+    }
+
+    if (!hasMeaningfulDraftData) {
+      clearDraftStorage();
+      return;
+    }
+
+    localStorage.setItem(
+      NEW_SALE_DRAFT_KEY,
+      JSON.stringify(debouncedDraftSnapshot),
+    );
+    setDraftSavedAt(new Date(debouncedDraftSnapshot.savedAt));
+  }, [debouncedDraftSnapshot, draftReady, hasMeaningfulDraftData]);
 
   const canAdvance = () => {
     if (currentStep === 0) {
@@ -538,7 +781,20 @@ export default function NewSaleForm({
   };
 
   const handleSubmit = async () => {
-    if (!customerName.trim() || lineItems.length === 0) return;
+    if (!customerName.trim() || !contactNumber.trim() || lineItems.length === 0) {
+      toast.error(t('newSale.draft.missingRequired', 'Complete the customer and item details first.'));
+      return;
+    }
+
+    if (deliveryMethod === 'delivery' && (!city || !address.trim())) {
+      toast.error(t('newSale.fulfillment.completeDelivery', 'Choose a city and full delivery address.'));
+      return;
+    }
+
+    if (deliveryMethod === 'pickup' && !pickupLocation.trim()) {
+      toast.error(t('newSale.fulfillment.completePickup', 'Add a pickup location before submitting.'));
+      return;
+    }
 
     // Show progress modal
     setShowProgress(true);
@@ -561,13 +817,13 @@ export default function NewSaleForm({
 
         // Make the actual API call (this will redirect on success)
         await createSale({
-          customerName,
-          contactNumber,
-          address,
+          customerName: customerName.trim(),
+          contactNumber: contactNumber.trim(),
+          address: address.trim(),
           deliveryMethod,
           deliveryFee: deliveryMethod === 'delivery' ? deliveryFee : 0,
           deliveryWindow,
-          city,
+          city: city.trim(),
           isExpedited,
           lineItems: lineItems.map(({ productId, quantity, unitPrice }) => ({
             productId,
@@ -576,16 +832,18 @@ export default function NewSaleForm({
           })),
           subtotal,
           total,
-          channel,
-          orderReference,
+          channel: channel.trim(),
+          orderReference: orderReference.trim() || undefined,
           fulfillmentType,
           partnerId:
             fulfillmentType === 'on-demand' && selectedAgent
               ? partner
               : undefined,
           pickupLocation:
-            deliveryMethod === 'pickup' ? pickupLocation : undefined,
-          notes,
+            deliveryMethod === 'pickup'
+              ? pickupLocation.trim() || undefined
+              : undefined,
+          notes: notes.trim() || undefined,
         });
 
         // If we reach here, show success (redirect() will throw, so this may not run)
@@ -596,11 +854,12 @@ export default function NewSaleForm({
           error &&
           typeof error === 'object' &&
           'digest' in error &&
-          typeof (error as any).digest === 'string' &&
-          (error as any).digest.includes('NEXT_REDIRECT')
+          typeof (error as RedirectLikeError).digest === 'string' &&
+          (error as RedirectLikeError).digest?.includes('NEXT_REDIRECT')
         ) {
           // This is expected - the redirect is happening
           setProgressStep('success');
+          clearDraftStorage();
           // Let the redirect happen
           throw error;
         }
@@ -1298,6 +1557,27 @@ export default function NewSaleForm({
 
   return (
     <div className="mx-auto max-w-3xl">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            {t('newSale.draft.title', 'Local draft')}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {draftSavedAt
+              ? t('newSale.draft.savedAt', `Autosaved on this device at ${format(draftSavedAt, 'PP p')}.`)
+              : t('newSale.draft.idle', 'Changes autosave on this device while you build the order.')}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={resetDraftAndReload}
+          disabled={!draftSavedAt && !hasMeaningfulDraftData}
+          className="border-white/10 bg-white/5 hover:bg-white/10">
+          {t('newSale.draft.clear', 'Clear draft')}
+        </Button>
+      </div>
+
       <div className="mb-8">
         <OrderStepper steps={stepConfig} currentStep={currentStep} />
       </div>
@@ -1323,39 +1603,46 @@ export default function NewSaleForm({
               {t('newSale.review.backButton', 'Back')}
             </Button>
 
-            {currentStep === stepConfig.length - 1 ? (
-              <Button
-                type="submit"
-                disabled={!acknowledged || isPending}
-                className={cn(
-                  'relative overflow-hidden rounded-xl px-8 py-6 text-base font-bold transition-all duration-300',
-                  acknowledged
-                    ? 'bg-primary text-primary-foreground shadow-[0_0_30px_rgba(219,236,10,0.4)] hover:shadow-[0_0_50px_rgba(219,236,10,0.6)] hover:scale-105'
-                    : 'bg-muted text-muted-foreground',
-                )}>
-                {isPending ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    {t('common.messages.processing', 'Processing...')}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    {t('newSale.review.submitButton', 'Submit Order')}
-                  </span>
-                )}
-                {acknowledged && !isPending && (
-                  <div className="absolute inset-0 -z-10 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer" />
-                )}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleNext}
-                disabled={!canAdvance()}
-                className="rounded-xl bg-white/10 px-8 py-6 text-base font-bold text-foreground hover:bg-white/20">
-                Next Step
-              </Button>
-            )}
+            <div className="flex flex-col items-end gap-2">
+              {draftSavedAt && (
+                <p className="text-xs text-muted-foreground">
+                  {t('newSale.draft.footer', `Draft saved ${format(draftSavedAt, 'p')}`)}
+                </p>
+              )}
+              {currentStep === stepConfig.length - 1 ? (
+                <Button
+                  type="submit"
+                  disabled={!acknowledged || isPending}
+                  className={cn(
+                    'relative overflow-hidden rounded-xl px-8 py-6 text-base font-bold transition-all duration-300',
+                    acknowledged
+                      ? 'bg-primary text-primary-foreground shadow-[0_0_30px_rgba(219,236,10,0.4)] hover:shadow-[0_0_50px_rgba(219,236,10,0.6)] hover:scale-105'
+                      : 'bg-muted text-muted-foreground',
+                  )}>
+                  {isPending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      {t('common.messages.processing', 'Processing...')}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      {t('newSale.review.submitButton', 'Submit Order')}
+                    </span>
+                  )}
+                  {acknowledged && !isPending && (
+                    <div className="absolute inset-0 -z-10 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] animate-shimmer" />
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canAdvance()}
+                  className="rounded-xl bg-white/10 px-8 py-6 text-base font-bold text-foreground hover:bg-white/20">
+                  Next Step
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </form>

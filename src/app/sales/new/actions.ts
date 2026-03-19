@@ -8,13 +8,13 @@ import { z } from 'zod';
 
 const createSaleSchema = z
   .object({
-    customerName: z.string().min(1),
-    contactNumber: z.string().min(4),
-    address: z.string().optional().default(''),
-    city: z.string().optional(),
+    customerName: z.string().trim().min(1, 'Customer name is required.'),
+    contactNumber: z.string().trim().min(4, 'Contact number is required.'),
+    address: z.string().trim().optional().default(''),
+    city: z.string().trim().optional(),
     deliveryMethod: z.enum(['delivery', 'pickup']),
     deliveryFee: z.number().nonnegative(),
-    deliveryWindow: z.string().optional().default('Same day (<6h)'),
+    deliveryWindow: z.string().trim().optional().default('Same day (<6h)'),
     isExpedited: z.boolean().optional().default(false),
     lineItems: z
       .array(
@@ -27,12 +27,12 @@ const createSaleSchema = z
       .min(1, 'At least one line item is required'),
     subtotal: z.number().nonnegative().optional(), // client hint only
     total: z.number().nonnegative().optional(), // client hint only
-    channel: z.string().min(2),
-    orderReference: z.string().optional(),
+    channel: z.string().trim().min(2),
+    orderReference: z.string().trim().optional(),
     fulfillmentType: z.enum(['limited', 'on-demand']),
     partnerId: z.string().cuid().optional(),
-    pickupLocation: z.string().optional(),
-    notes: z.string().optional(),
+    pickupLocation: z.string().trim().optional(),
+    notes: z.string().trim().optional(),
   })
   .refine(
     (data) => data.fulfillmentType === 'limited' || Boolean(data.partnerId),
@@ -40,7 +40,34 @@ const createSaleSchema = z
       path: ['partnerId'],
       message: 'Partner is required for on-demand orders.',
     }
-  );
+  )
+  .superRefine((data, ctx) => {
+    if (data.deliveryMethod === 'delivery') {
+      if (!data.city) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['city'],
+          message: 'Choose a delivery city.',
+        });
+      }
+
+      if (!data.address) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['address'],
+          message: 'Delivery address is required.',
+        });
+      }
+    }
+
+    if (data.deliveryMethod === 'pickup' && !data.pickupLocation) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['pickupLocation'],
+        message: 'Pickup location is required for pickup orders.',
+      });
+    }
+  });
 
 export async function getProducts() {
   const products = await prisma.product.findMany();
@@ -243,6 +270,7 @@ export async function createSale(data: z.infer<typeof createSaleSchema>) {
         customerId: customer.id,
         subtotal: subtotalCalc,
         total: grandTotal,
+        shippingFee: effectiveDeliveryFee,
         orderNo: `SO-${Date.now()}`,
         date: new Date(),
         channel: normalizedChannel,
