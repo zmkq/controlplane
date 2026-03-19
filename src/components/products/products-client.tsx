@@ -263,6 +263,14 @@ export function ProductsClient({
       currentStatus ||
       currentStock
   );
+  const activeFilterCount = [
+    currentQuery,
+    currentType,
+    currentSupplier,
+    currentFulfillmentMode,
+    currentStatus,
+    currentStock,
+  ].filter(Boolean).length;
   const activeSupplierName =
     suppliers.find((supplier) => supplier.id === currentSupplier)?.name ??
     currentSupplier;
@@ -1045,13 +1053,26 @@ export function ProductsClient({
       {/* Product Grid */}
       <section className="space-y-8">
         <div className="space-y-4 rounded-[2rem] border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+          <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/10 bg-black/20 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
                 <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
                 Refine view
-              </div>
+              </span>
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                Showing {products.length} products
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                {activeFilterCount} active filters
+              </span>
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Tune product type, supplier, fulfillment, status, and stock level without leaving the command view.
+            </p>
+          </div>
 
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <select
                 value={currentType}
                 onChange={(e) => updateFilter('type', e.target.value)}
