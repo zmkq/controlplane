@@ -20,7 +20,7 @@ function syncDocumentLanguage(code: LanguageCode) {
   document.cookie = `${LOCALE_COOKIE_NAME}=${code}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { lang: currentLanguage } = useTranslations();
 
   const applyLanguage = (code: LanguageCode) => {
@@ -33,14 +33,20 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="inline-flex rounded-2xl border border-border/60 bg-background/40 p-1 text-xs font-semibold">
+    <div
+      className={cn(
+        'inline-flex border border-border/60 bg-background/40 p-1 text-xs font-semibold',
+        compact ? 'rounded-xl' : 'rounded-2xl',
+      )}>
       {languages.map((language) => (
         <Button
           key={language.code}
           variant="ghost"
           size="sm"
           className={cn(
-            'h-8 rounded-xl px-3 text-[11px] tracking-[0.3em]',
+            compact
+              ? 'h-8 rounded-lg px-2.5 text-[10px] tracking-[0.24em]'
+              : 'h-8 rounded-xl px-3 text-[11px] tracking-[0.3em]',
             language.code === currentLanguage &&
               'brand-glow text-primary-foreground'
           )}

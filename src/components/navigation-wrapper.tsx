@@ -22,9 +22,11 @@ export function NavigationWrapper({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main
         id="main-content"
-        className="min-w-0 flex-1 pb-[calc(104px+var(--safe-bottom))] pt-[calc(var(--nav-height)+var(--safe-top)+0.75rem)] lg:pl-[calc(var(--sidebar-width)+1.5rem)] xl:pl-[calc(var(--sidebar-width)+2rem)]"
+        className="relative min-w-0 flex-1 overflow-x-clip pb-[calc(var(--mobile-dock-height)+1.5rem+var(--safe-bottom))] pt-[calc(var(--nav-height)+var(--safe-top)+1rem)] lg:pb-12 lg:pl-[calc(var(--sidebar-width)+1.5rem)] lg:pt-[calc(var(--nav-height)+var(--safe-top)+1.25rem)] xl:pl-[calc(var(--sidebar-width)+2rem)]"
       >
-        <div className="page-shell w-full lg:px-0 lg:pr-8 lg:pt-4 xl:pr-10 xl:pt-6">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(98,195,255,0.12),transparent_60%)] opacity-80" />
+        <div className="pointer-events-none absolute right-0 top-32 h-56 w-56 rounded-full bg-primary/8 blur-[100px]" />
+        <div className="page-shell relative z-10 w-full lg:px-0 lg:pr-8 lg:pt-4 xl:pr-10 xl:pt-6">
           {children}
         </div>
       </main>

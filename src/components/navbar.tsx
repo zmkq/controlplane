@@ -2,15 +2,35 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Settings2 } from 'lucide-react';
+import { RadioTower, Settings2 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NotificationsHubButton } from '@/components/notifications/notifications-hub-button';
 import { APP_LOGO_PATH, APP_NAME } from '@/lib/app-config';
 import { useTranslations } from '@/lib/i18n';
 
 export function Navbar() {
+  const pathname = usePathname();
   const { t, lang } = useTranslations();
-  const initials = lang === 'ar' ? 'تش' : 'CP';
+  const initials = lang === 'ar' ? 'AR' : 'CP';
+  const activeSection =
+    pathname === '/dashboard'
+      ? t('sidebar.nav.dashboard', 'Dashboard')
+      : pathname.startsWith('/sales')
+        ? t('sidebar.nav.sales', 'Sales')
+        : pathname.startsWith('/products')
+          ? t('sidebar.nav.products', 'Products')
+          : pathname.startsWith('/expenses')
+            ? t('sidebar.nav.expenses', 'Expenses')
+            : pathname.startsWith('/agents')
+              ? t('sidebar.nav.agents', 'Agents')
+              : pathname.startsWith('/reports')
+                ? t('sidebar.nav.reports', 'Reports')
+                : pathname.startsWith('/audit-logs')
+                  ? t('sidebar.nav.audit', 'Audit Logs')
+                  : pathname.startsWith('/notifications')
+                    ? t('notifications.title', 'Notifications')
+                    : t('sidebar.nav.settings', 'Settings');
 
   return (
     <nav
@@ -19,31 +39,50 @@ export function Navbar() {
       <div className="absolute inset-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(2,3,10,0.92)_0%,rgba(2,3,10,0.78)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
       <div className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
 
-      <div className="relative flex w-full items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.85rem+var(--safe-top))] sm:px-6 lg:px-8">
-        <Link
-          href="/dashboard"
-          className="group flex min-w-0 items-center gap-3 rounded-2xl px-1 py-1 transition-opacity hover:opacity-90">
-          <div className="relative">
-            <div className="absolute -inset-2 bg-primary/20 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-            <Image
-              src={APP_LOGO_PATH}
-              alt={APP_NAME}
-              className="relative h-10 w-10"
-              width={40}
-              height={40}
-            />
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-semibold tracking-[0.08em] text-foreground">
-              {APP_NAME}
+      <div className="relative flex w-full flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.8rem+var(--safe-top))] sm:px-6 lg:flex-nowrap lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="group flex min-w-0 items-center gap-3 rounded-2xl px-1 py-1 transition-opacity hover:opacity-90">
+            <div className="relative">
+              <div className="absolute -inset-2 bg-primary/20 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
+              <Image
+                src={APP_LOGO_PATH}
+                alt={APP_NAME}
+                className="relative h-10 w-10"
+                width={40}
+                height={40}
+              />
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-semibold tracking-[0.08em] text-foreground">
+                {APP_NAME}
+              </span>
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground/80 sm:block">
+                {t('nav.taglineSub', 'Supplement operations command center')}
+              </span>
+            </div>
+          </Link>
+
+          <div className="hidden min-[480px]:flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <RadioTower className="h-3.5 w-3.5" />
             </span>
-            <span className="hidden text-[10px] font-bold uppercase tracking-[0.28em] text-muted-foreground/80 sm:block">
-              {t('nav.taglineSub', 'Supplement operations command center')}
-            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                {t('nav.status', 'Live')}
+              </p>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {activeSection}
+              </p>
+            </div>
           </div>
-        </Link>
+        </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="min-[480px]:hidden">
+            <LanguageSwitcher compact />
+          </div>
           <div className="hidden lg:block">
             <LanguageSwitcher />
           </div>
