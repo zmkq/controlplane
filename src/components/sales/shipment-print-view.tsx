@@ -19,7 +19,7 @@ type SaleLine = {
   } | null;
 };
 
-type Sale = {
+export type ShipmentPrintSale = {
   id: string;
   orderNo: string;
   date: string | Date;
@@ -35,7 +35,7 @@ type Sale = {
 };
 
 type ShipmentPrintViewProps = {
-  sales: Sale[];
+  sales: ShipmentPrintSale[];
 };
 
 const barcodeBars = Array.from({ length: 30 }, (_, index) => ({

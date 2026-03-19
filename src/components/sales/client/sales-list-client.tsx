@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import type { Prisma } from '@prisma/client';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import {
@@ -25,7 +26,10 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import { SearchInput } from '@/components/ui/search-input';
 import { getImgBBThumbnail } from '@/lib/imgbb';
 import { useReactToPrint } from 'react-to-print';
-import { ShipmentPrintView } from '@/components/sales/shipment-print-view';
+import {
+  ShipmentPrintView,
+  type ShipmentPrintSale,
+} from '@/components/sales/shipment-print-view';
 import { useRef, useState, useTransition } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -37,18 +41,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 type ShippingMeta = {
   deliveryMethod?: 'delivery' | 'pickup';
   address?: string;
+  city?: string;
   contactNumber?: string;
   deliveryFee?: number;
   fulfillmentType?: 'limited' | 'on-demand';
   partnerName?: string;
+  notes?: string;
 };
 
 type SaleLine = {
   id: string;
   quantity?: number | null;
+  unitPrice?: number | string | null;
   product?: {
     name?: string | null;
     images?: string | null;
+    sku?: string | null;
   } | null;
 };
 
@@ -58,11 +66,13 @@ type SaleSummary = {
   channel?: string | null;
   status?: string | null;
   total?: number | string | null;
+  subtotal?: number | string | null;
   date: Date;
   fulfillmentMode?: 'ON_DEMAND' | string | null;
-  shippingAddress?: ShippingMeta | null;
+  shippingAddress?: Prisma.JsonValue | ShippingMeta | null;
   customer?: {
     name?: string | null;
+    phone?: string | null;
   } | null;
   lines?: SaleLine[] | null;
 };
@@ -149,6 +159,16 @@ function buildSalesHref(
   return `/sales?${params.toString()}`;
 }
 
+function toShippingMeta(
+  value: Prisma.JsonValue | ShippingMeta | null | undefined,
+): ShippingMeta {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as ShippingMeta;
+}
+
 export function SalesListClient({
   sales,
   totalCount,
@@ -214,6 +234,30 @@ export function SalesListClient({
   };
 
   const selectedSalesData = sales.filter((sale) => selectedSales.has(sale.id));
+  const printableSales: ShipmentPrintSale[] = selectedSalesData.map((sale) => ({
+    id: sale.id,
+    orderNo: sale.orderNo,
+    date: sale.date,
+    customer: {
+      name: sale.customer?.name ?? null,
+      phone: sale.customer?.phone ?? null,
+    },
+    shippingAddress: toShippingMeta(sale.shippingAddress),
+    lines: (sale.lines ?? []).map((line) => ({
+      quantity: line.quantity ?? 0,
+      unitPrice: line.unitPrice ?? 0,
+      product: {
+        name: line.product?.name ?? null,
+        sku: line.product?.sku ?? null,
+      },
+    })),
+    total: Number(sale.total ?? 0),
+    subtotal:
+      sale.subtotal === null || sale.subtotal === undefined
+        ? undefined
+        : Number(sale.subtotal),
+    channel: sale.channel ?? undefined,
+  }));
   const hasFilters =
     channelFilter !== 'all' || fulfillmentFilter !== 'all' || searchQuery !== '';
   const activeFilterCount = [
@@ -303,7 +347,7 @@ export function SalesListClient({
   return (
     <div className="space-y-8">
       <div className="hidden">
-        <ShipmentPrintView ref={printRef} sales={selectedSalesData} />
+        <ShipmentPrintView ref={printRef} sales={printableSales} />
       </div>
 
       <AnimatePresence>
@@ -553,7 +597,7 @@ export function SalesListClient({
           </EmptyStatePanel>
         ) : (
           sales.map((sale) => {
-            const shipping = (sale.shippingAddress ?? {}) as ShippingMeta;
+            const shipping = toShippingMeta(sale.shippingAddress);
             const fulfillmentType =
               sale.fulfillmentMode === 'ON_DEMAND'
                 ? 'on-demand'
