@@ -180,11 +180,19 @@ export function SettingsClient({
     });
   };
 
-  const exportCsv = () => {
-    toast.info(t('settings.data.export', 'Export CSV snapshot'), {
-      description: 'Preparing a ZIP snapshot with the latest operational CSVs.',
-    });
-    window.location.assign('/api/settings/export');
+  const startExport = (profile: 'core' | 'full') => {
+    const isFull = profile === 'full';
+    toast.info(
+      isFull
+        ? t('settings.data.fullExport', 'Full backup')
+        : t('settings.data.export', 'Export CSV snapshot'),
+      {
+        description: isFull
+          ? 'Preparing a full ZIP snapshot with audit logs and device subscriptions.'
+          : 'Preparing a core ZIP snapshot with the latest operational CSVs.',
+      },
+    );
+    window.location.assign(`/api/settings/export?profile=${profile}`);
   };
 
   const purgeDrafts = () => {
@@ -524,9 +532,18 @@ export function SettingsClient({
           <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
             {t('settings.data.title', 'Data Management')}
           </h2>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              'settings.data.description',
+              'Core exports cover live operations. Full backups add audit trails and subscribed devices.',
+            )}
+          </p>
           <div className="flex flex-wrap gap-4">
-            <Button variant="outline" onClick={exportCsv}>
+            <Button variant="outline" onClick={() => startExport('core')}>
               {t('settings.data.export', 'Export Data')}
+            </Button>
+            <Button onClick={() => startExport('full')}>
+              {t('settings.data.fullExport', 'Full backup')}
             </Button>
             <Button variant="destructive" onClick={purgeDrafts}>
               {t('settings.data.purge', 'Clear Cache')}
