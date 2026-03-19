@@ -35,19 +35,27 @@ function resolveLocalChromiumExecutable() {
 }
 
 const localChromiumExecutable = resolveLocalChromiumExecutable();
+const testPort = process.env.PLAYWRIGHT_PORT ?? '3007';
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${testPort}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   use: {
-    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? 'http://127.0.0.1:3000',
+    baseURL,
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'bunx next dev --hostname 127.0.0.1 --port 3000',
-    url: 'http://127.0.0.1:3000',
+    command: `bun run build && bunx next start --hostname 127.0.0.1 --port ${testPort}`,
+    env: {
+      ...process.env,
+      AUTH_TRUST_HOST: 'true',
+      NEXT_PUBLIC_APP_URL: baseURL,
+    },
+    url: baseURL,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 240_000,
   },
   projects: [
     {
