@@ -2,7 +2,7 @@
 
 import { useId, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardDescription, CardTitle } from '@/components/ui/card';
 import {
   ChartConfig,
   ChartContainer,
@@ -27,7 +27,10 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 
 export function LineChartComponent({ data = [] }: LineChartProps) {
   const { t } = useTranslations();
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = useMemo(
+    () => (Array.isArray(data) ? data : []),
+    [data]
+  );
 
   const revenueTrend = useMemo(() => {
     if (safeData.length < 2) return null;
