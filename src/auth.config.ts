@@ -1,5 +1,19 @@
 import type { NextAuthConfig } from 'next-auth'
 
+function isPublicAssetRoute(pathname: string) {
+  return (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/icons/') ||
+    pathname.startsWith('/assets/') ||
+    pathname === '/manifest.webmanifest' ||
+    pathname === '/sw.js' ||
+    pathname === '/offline.html' ||
+    pathname === '/controlplane-mark.svg' ||
+    pathname.includes('favicon.ico')
+  )
+}
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -24,11 +38,11 @@ export const authConfig = {
         return true
       }
       
-      // Allow access to public assets and api
-      if (nextUrl.pathname.startsWith('/api/auth') || 
-          nextUrl.pathname.startsWith('/_next') || 
-          nextUrl.pathname.startsWith('/static') ||
-          nextUrl.pathname.includes('favicon.ico')) {
+      // Allow access to auth endpoints and public assets.
+      if (
+        nextUrl.pathname.startsWith('/api/auth') ||
+        isPublicAssetRoute(nextUrl.pathname)
+      ) {
         return true
       }
 
