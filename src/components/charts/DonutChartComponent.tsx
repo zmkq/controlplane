@@ -32,8 +32,14 @@ export function DonutChartComponent({
   subtitle,
   emptyMessage = 'Nothing to visualize yet.',
 }: DonutChartComponentProps) {
-  const safeData = (data ?? []).filter((item) => typeof item.value === 'number');
-  const total = safeData.reduce((sum, item) => sum + item.value, 0);
+  const safeData = useMemo(
+    () => (data ?? []).filter((item) => typeof item.value === 'number'),
+    [data]
+  );
+  const total = useMemo(
+    () => safeData.reduce((sum, item) => sum + item.value, 0),
+    [safeData]
+  );
 
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {};
@@ -74,7 +80,7 @@ export function DonutChartComponent({
                   {safeData.map((entry) => (
                     <Cell key={entry.key} fill={`var(--color-${entry.key})`} stroke="var(--background)" />
                   ))}
-                  <Label position="center" content={createCenterLabel(total)} />
+                  <Label position="center" content={<DonutCenterLabel total={total} />} />
                 </Pie>
               </PieChart>
             </ChartContainer>
@@ -96,21 +102,23 @@ export function DonutChartComponent({
   );
 }
 
-function createCenterLabel(total: number): LabelProps['content'] {
-  return (labelProps) => {
-    const { cx, cy } = labelProps as PieLabelRenderProps;
-    if (typeof cx !== 'number' || typeof cy !== 'number') {
-      return null;
-    }
-    return (
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="fill-foreground">
-        <tspan className="text-xs uppercase text-muted-foreground" x={cx} dy="-0.4em">
-          Total
-        </tspan>
-        <tspan className="text-2xl font-semibold" x={cx} dy="1.2em">
-          {total.toFixed(0)}
-        </tspan>
-      </text>
-    );
-  };
+function DonutCenterLabel({
+  total,
+  viewBox,
+}: LabelProps & { total: number }) {
+  const { cx, cy } = (viewBox ?? {}) as PieLabelRenderProps;
+  if (typeof cx !== 'number' || typeof cy !== 'number') {
+    return null;
+  }
+
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="fill-foreground">
+      <tspan className="text-xs uppercase text-muted-foreground" x={cx} dy="-0.4em">
+        Total
+      </tspan>
+      <tspan className="text-2xl font-semibold" x={cx} dy="1.2em">
+        {total.toFixed(0)}
+      </tspan>
+    </text>
+  );
 }
