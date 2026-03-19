@@ -2,18 +2,14 @@
 
 import { prisma } from '@/lib/prisma';
 import { type AppSettings } from '@prisma/client';
+import { DEFAULT_APP_SETTINGS } from '@/lib/settings-config';
 const SETTINGS_ID = 'singleton';
 
 function fallbackSettings(): AppSettings {
   const now = new Date();
   return {
     id: SETTINGS_ID,
-    language: 'en',
-    phoneFormat: 'international',
-    timezone: 'Asia/Amman',
-    brandColor: '#dbec0a',
-    emailNotifications: true,
-    smsNotifications: false,
+    ...DEFAULT_APP_SETTINGS,
     createdAt: now,
     updatedAt: now,
   };
@@ -26,6 +22,7 @@ export async function getAppSettings(): Promise<AppSettings> {
       settings = await prisma.appSettings.create({
         data: {
           id: SETTINGS_ID,
+          ...DEFAULT_APP_SETTINGS,
         },
       });
     }
@@ -45,6 +42,7 @@ export async function updateAppSettings(input: UpdateSettingsInput): Promise<App
       update: input,
       create: {
         id: SETTINGS_ID,
+        ...DEFAULT_APP_SETTINGS,
         ...input,
       },
     });

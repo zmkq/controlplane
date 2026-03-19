@@ -1,46 +1,57 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { updateAppSettings } from '@/lib/settings';
+import {
+  DEFAULT_APP_SETTINGS,
+  isValidTimezone,
+  normalizeBrandColor,
+} from '@/lib/settings-config';
 
 const updateSchema = z.object({
   language: z.enum(['en', 'ar']).optional(),
   phoneFormat: z.enum(['local', 'international']).optional(),
-  timezone: z.string().min(2).max(60).optional(),
+  timezone: z
+    .string()
+    .min(2)
+    .max(60)
+    .refine(isValidTimezone, 'Invalid timezone')
+    .optional(),
   brandColor: z
     .string()
-    .regex(/^#([0-9a-f]{6}|[0-9a-f]{3})$/i, { message: 'Invalid hex colour' })
+    .transform((value) => normalizeBrandColor(value))
+    .refine((value) => value !== null, { message: 'Invalid hex colour' })
     .optional(),
   emailNotifications: z.boolean().optional(),
   smsNotifications: z.boolean().optional(),
 });
 
 export async function updateSettings(data: z.infer<typeof updateSchema>) {
+  const validated = updateSchema.safeParse(data);
+
+  if (!validated.success) {
+    return {
+      success: false as const,
+      error: validated.error.issues[0]?.message ?? 'Failed to update settings',
+    };
+  }
+
   try {
-    const validated = updateSchema.parse(data);
-    
-    // Get or create settings
-    const existing = await prisma.appSettings.findFirst();
-    
-    let settings;
-    if (existing) {
-      settings = await prisma.appSettings.update({
-        where: { id: existing.id },
-        data: validated,
-      });
-    } else {
-      settings = await prisma.appSettings.create({
-        data: {
-          ...validated,
-          // Set defaults if creating new
-          language: validated.language ?? 'en',
-          phoneFormat: validated.phoneFormat ?? 'local',
-          timezone: validated.timezone ?? 'Asia/Amman',
-          brandColor: validated.brandColor ?? '#dbec0a',
-        },
-      });
-    }
+    const settings = await updateAppSettings({
+      ...validated.data,
+      brandColor: validated.data.brandColor ?? undefined,
+      language: validated.data.language ?? DEFAULT_APP_SETTINGS.language,
+      phoneFormat:
+        validated.data.phoneFormat ?? DEFAULT_APP_SETTINGS.phoneFormat,
+      timezone: validated.data.timezone ?? DEFAULT_APP_SETTINGS.timezone,
+      emailNotifications:
+        validated.data.emailNotifications ??
+        DEFAULT_APP_SETTINGS.emailNotifications,
+      smsNotifications:
+        validated.data.smsNotifications ??
+        DEFAULT_APP_SETTINGS.smsNotifications,
+    });
 
     revalidatePath('/', 'layout');
     return { success: true, settings };

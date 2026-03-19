@@ -1,62 +1,170 @@
 'use client';
 
-import { useTransition, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppSettings } from '@prisma/client';
-import { useTranslations } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from '@/lib/toast';
+import { Loader2, RotateCcw, Save } from 'lucide-react';
 import { updateSettings } from '@/app/settings/actions';
 import { NotificationToggle } from '@/components/pwa/notification-toggle';
-import { Loader2, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { useTranslations } from '@/lib/i18n';
+import {
+  DEFAULT_APP_SETTINGS,
+  SUPPORTED_TIMEZONES,
+  normalizeBrandColor,
+} from '@/lib/settings-config';
 import { getDirection, LOCALE_COOKIE_NAME } from '@/lib/locale';
+import { toast } from '@/lib/toast';
 
-export function SettingsClient({ initialSettings }: { initialSettings: AppSettings }) {
+type SettingsFormState = {
+  language: 'en' | 'ar';
+  phoneFormat: 'local' | 'international';
+  timezone: string;
+  brandColor: string;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+};
+
+const TIMEZONE_DATALIST_ID = 'settings-timezone-options';
+
+function toFormState(initialSettings: AppSettings): SettingsFormState {
+  return {
+    language:
+      initialSettings.language === 'ar'
+        ? 'ar'
+        : DEFAULT_APP_SETTINGS.language,
+    phoneFormat:
+      initialSettings.phoneFormat === 'local'
+        ? 'local'
+        : DEFAULT_APP_SETTINGS.phoneFormat,
+    timezone: initialSettings.timezone ?? DEFAULT_APP_SETTINGS.timezone,
+    brandColor: initialSettings.brandColor ?? DEFAULT_APP_SETTINGS.brandColor,
+    emailNotifications:
+      initialSettings.emailNotifications ??
+      DEFAULT_APP_SETTINGS.emailNotifications,
+    smsNotifications:
+      initialSettings.smsNotifications ?? DEFAULT_APP_SETTINGS.smsNotifications,
+  };
+}
+
+function applyLanguagePreview(language: 'en' | 'ar') {
+  document.documentElement.lang = language;
+  document.documentElement.dir = getDirection(language);
+  document.documentElement.dataset.lang = language;
+  document.cookie = `${LOCALE_COOKIE_NAME}=${language}; path=/; max-age=31536000; SameSite=Lax`;
+  window.dispatchEvent(
+    new CustomEvent('controlplane-lang-change', { detail: language }),
+  );
+}
+
+function applyAccentPreview(brandColor: string) {
+  document.body.style.setProperty('--primary', brandColor);
+}
+
+export function SettingsClient({
+  initialSettings,
+}: {
+  initialSettings: AppSettings;
+}) {
   const { t } = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  
-  // Local state for form inputs
-  const [settings, setSettings] = useState({
-    language: initialSettings.language ?? 'en',
-    phoneFormat: initialSettings.phoneFormat ?? 'local',
-    timezone: initialSettings.timezone ?? 'Asia/Amman',
-    brandColor: initialSettings.brandColor ?? '#dbec0a',
-  });
+  const [settings, setSettings] = useState(() => toFormState(initialSettings));
+  const [timezoneQuery, setTimezoneQuery] = useState(
+    initialSettings.timezone ?? DEFAULT_APP_SETTINGS.timezone,
+  );
+  const [colorInput, setColorInput] = useState(
+    initialSettings.brandColor ?? DEFAULT_APP_SETTINGS.brandColor,
+  );
 
-  // Handle language change immediately for preview
-  const handleLanguageChange = (newLang: string) => {
-    setSettings(prev => ({ ...prev, language: newLang }));
-    document.documentElement.lang = newLang;
-    document.documentElement.dir = getDirection(newLang as 'en' | 'ar');
-    document.documentElement.dataset.lang = newLang;
-    document.cookie = `${LOCALE_COOKIE_NAME}=${newLang}; path=/; max-age=31536000; SameSite=Lax`;
-    window.dispatchEvent(new CustomEvent('controlplane-lang-change', { detail: newLang }));
+  const initialForm = useMemo(
+    () => toFormState(initialSettings),
+    [initialSettings],
+  );
+
+  const normalizedColor = normalizeBrandColor(colorInput);
+  const hasValidTimezone = SUPPORTED_TIMEZONES.includes(timezoneQuery);
+  const isDirty =
+    settings.language !== initialForm.language ||
+    settings.phoneFormat !== initialForm.phoneFormat ||
+    timezoneQuery !== initialForm.timezone ||
+    colorInput !== initialForm.brandColor ||
+    settings.emailNotifications !== initialForm.emailNotifications ||
+    settings.smsNotifications !== initialForm.smsNotifications;
+
+  const commitTimezone = (nextTimezone: string) => {
+    setTimezoneQuery(nextTimezone);
+    setSettings((prev) => ({ ...prev, timezone: nextTimezone }));
+  };
+
+  const handleLanguageChange = (language: 'en' | 'ar') => {
+    setSettings((prev) => ({ ...prev, language }));
+    applyLanguagePreview(language);
+  };
+
+  const handleColorInputChange = (value: string) => {
+    setColorInput(value);
+    const nextColor = normalizeBrandColor(value);
+    if (nextColor) {
+      setSettings((prev) => ({ ...prev, brandColor: nextColor }));
+      applyAccentPreview(nextColor);
+    }
+  };
+
+  const handleReset = () => {
+    setSettings(initialForm);
+    setTimezoneQuery(initialForm.timezone);
+    setColorInput(initialForm.brandColor);
+    applyLanguagePreview(initialForm.language);
+    applyAccentPreview(initialForm.brandColor);
+    toast.info(t('common.messages.updated', 'Updated successfully'), {
+      description: t(
+        'settings.preferences.description',
+        'Language, phone format, timezone, and accent colour.',
+      ),
+    });
   };
 
   const handleSave = () => {
+    if (!normalizedColor) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Accent colour must be a valid hex value.',
+      });
+      return;
+    }
+
+    if (!hasValidTimezone) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Choose a valid timezone from the supported list.',
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateSettings({
-        language: settings.language as 'en' | 'ar',
-        phoneFormat: settings.phoneFormat as 'local' | 'international',
+        language: settings.language,
+        phoneFormat: settings.phoneFormat,
         timezone: settings.timezone,
-        brandColor: settings.brandColor,
+        brandColor: normalizedColor,
+        emailNotifications: settings.emailNotifications,
+        smsNotifications: settings.smsNotifications,
       });
 
       if (result.success) {
-        toast.success(t('settings.preferences.saved', 'Preferences updated'));
-        document.documentElement.lang = settings.language;
-        document.documentElement.dir = getDirection(settings.language as 'en' | 'ar');
-        document.documentElement.dataset.lang = settings.language;
-        document.body.style.setProperty('--primary', settings.brandColor);
-        document.cookie = `${LOCALE_COOKIE_NAME}=${settings.language}; path=/; max-age=31536000; SameSite=Lax`;
-        window.dispatchEvent(new CustomEvent('controlplane-lang-change', { detail: settings.language }));
-        
+        applyLanguagePreview(settings.language);
+        applyAccentPreview(normalizedColor);
+        toast.success(
+          t('settings.preferences.saved', 'Preferences updated'),
+        );
         router.refresh();
-      } else {
-        toast.error(t('common.error', 'Something went wrong'));
+        return;
       }
+
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: result.error,
+      });
     });
   };
 
@@ -65,100 +173,197 @@ export function SettingsClient({ initialSettings }: { initialSettings: AppSettin
   };
 
   const purgeDrafts = () => {
-    if (confirm(t('settings.data.confirm', 'This only clears cached drafts on this device.'))) {
+    if (
+      confirm(
+        t(
+          'settings.data.confirm',
+          'This only clears cached drafts on this device.',
+        ),
+      )
+    ) {
       localStorage.clear();
       toast.success(t('settings.data.purge', 'Purge local drafts'));
     }
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      {/* Header */}
+    <div className="mx-auto max-w-4xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">{t('settings.heroTitle', 'Settings')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t('settings.heroTitle', 'Settings')}
+        </h1>
         <p className="text-muted-foreground">
-          {t('settings.heroSubtitle', 'Manage your preferences and application settings.')}
+          {t(
+            'settings.heroSubtitle',
+            'Manage your preferences and application settings.',
+          )}
         </p>
       </div>
 
       <div className="grid gap-8">
-        {/* Preferences Section */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold border-b border-border/50 pb-2">
-            {t('settings.preferences.title', 'Preferences')}
-          </h2>
-          
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <h2 className="text-lg font-semibold">
+              {t('settings.preferences.title', 'Preferences')}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              disabled={isPending || !isDirty}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {t('settings.preferences.resetColor', 'Reset')}
+            </Button>
+          </div>
+
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Language */}
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label className="text-sm font-medium leading-none">
                 {t('settings.preferences.languageLabel', 'Language')}
               </label>
               <select
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 value={settings.language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-              >
+                onChange={(event) =>
+                  handleLanguageChange(event.target.value as 'en' | 'ar')
+                }>
                 <option value="en">English</option>
                 <option value="ar">العربية</option>
               </select>
             </div>
 
-            {/* Phone Format */}
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label className="text-sm font-medium leading-none">
                 {t('settings.preferences.phoneLabel', 'Phone Format')}
               </label>
               <select
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 value={settings.phoneFormat}
-                onChange={(e) => setSettings(prev => ({ ...prev, phoneFormat: e.target.value }))}
-              >
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    phoneFormat: event.target.value as 'local' | 'international',
+                  }))
+                }>
                 <option value="local">Local (07X)</option>
                 <option value="international">International (+962)</option>
               </select>
             </div>
 
-            {/* Timezone */}
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label className="text-sm font-medium leading-none">
                 {t('settings.preferences.timezoneLabel', 'Timezone')}
               </label>
               <Input
-                value={settings.timezone}
-                onChange={(e) => setSettings(prev => ({ ...prev, timezone: e.target.value }))}
+                list={TIMEZONE_DATALIST_ID}
+                value={timezoneQuery}
+                onChange={(event) => commitTimezone(event.target.value)}
+                aria-invalid={!hasValidTimezone}
               />
+              <datalist id={TIMEZONE_DATALIST_ID}>
+                {SUPPORTED_TIMEZONES.map((timezone) => (
+                  <option key={timezone} value={timezone} />
+                ))}
+              </datalist>
+              {!hasValidTimezone && (
+                <p className="text-xs text-destructive">
+                  Choose a valid IANA timezone, for example `Asia/Amman`.
+                </p>
+              )}
             </div>
 
-            {/* Brand Color */}
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <label className="text-sm font-medium leading-none">
                 {t('settings.preferences.brandLabel', 'Brand Color')}
               </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Input
-                    value={settings.brandColor}
-                    onChange={(e) => setSettings(prev => ({ ...prev, brandColor: e.target.value }))}
+                    value={colorInput}
+                    onChange={(event) =>
+                      handleColorInputChange(event.target.value)
+                    }
                     className="pl-10"
+                    aria-invalid={!normalizedColor}
                   />
-                  <div 
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-border"
-                    style={{ backgroundColor: settings.brandColor }}
+                  <div
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-border"
+                    style={{
+                      backgroundColor:
+                        normalizedColor ?? DEFAULT_APP_SETTINGS.brandColor,
+                    }}
                   />
                 </div>
                 <Input
                   type="color"
-                  value={settings.brandColor}
-                  onChange={(e) => setSettings(prev => ({ ...prev, brandColor: e.target.value }))}
-                  className="w-12 p-1 h-10 cursor-pointer"
+                  value={normalizedColor ?? DEFAULT_APP_SETTINGS.brandColor}
+                  onChange={(event) =>
+                    handleColorInputChange(event.target.value)
+                  }
+                  className="h-10 w-12 cursor-pointer p-1"
                 />
               </div>
+              {!normalizedColor && (
+                <p className="text-xs text-destructive">
+                  Use `#rgb` or `#rrggbb`.
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
-            <Button onClick={handleSave} disabled={isPending}>
+          <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-medium">
+                  {t('settings.notifications.email', 'Email summaries')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Daily summaries and admin workflow recaps.
+                </p>
+              </div>
+              <Switch
+                checked={settings.emailNotifications}
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    emailNotifications: checked,
+                  }))
+                }
+              />
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-medium">
+                  {t('settings.notifications.sms', 'SMS escalation')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Escalate urgent order issues to the phone on file.
+                </p>
+              </div>
+              <Switch
+                checked={settings.smsNotifications}
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    smsNotifications: checked,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              disabled={isPending || !isDirty}>
+              {t('common.buttons.cancel', 'Cancel')}
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={
+                isPending || !isDirty || !normalizedColor || !hasValidTimezone
+              }>
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -174,17 +379,21 @@ export function SettingsClient({ initialSettings }: { initialSettings: AppSettin
           </div>
         </section>
 
-        {/* Notifications Section */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold border-b border-border/50 pb-2">
+          <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
             {t('settings.notifications.title', 'Notifications')}
           </h2>
-          <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+          <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="font-medium">{t('settings.notifications.push', 'Push Notifications')}</p>
+                <p className="font-medium">
+                  {t('settings.notifications.push', 'Push Notifications')}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  {t('settings.notifications.description', 'Receive updates about new orders and status changes.')}
+                  {t(
+                    'settings.notifications.description',
+                    'Receive updates about new orders and status changes.',
+                  )}
                 </p>
               </div>
               <NotificationToggle />
@@ -192,9 +401,8 @@ export function SettingsClient({ initialSettings }: { initialSettings: AppSettin
           </div>
         </section>
 
-        {/* Data Management Section */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold border-b border-border/50 pb-2">
+          <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
             {t('settings.data.title', 'Data Management')}
           </h2>
           <div className="flex flex-wrap gap-4">
