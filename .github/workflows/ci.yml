@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: controlplane
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d controlplane"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/controlplane
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/controlplane
+      AUTH_SECRET: ci-controlplane-secret
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      DEMO_ADMIN_USERNAME: demo
+      DEMO_ADMIN_EMAIL: demo@controlplane.local
+      DEMO_ADMIN_PASSWORD: controlplane-demo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: bun run db:generate
+
+      - name: Apply migrations
+        run: bun run db:migrate --name ci --skip-generate
+
+      - name: Seed demo data
+        run: bun run db:seed
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit tests
+        run: bun run test
+
+      - name: Install Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: E2E smoke tests
+        run: bun run test:e2e
+
+      - name: Production build
+        run: bun run build

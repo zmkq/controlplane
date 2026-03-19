@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - Controlplane</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #02030a, #050614 45%, #020111 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        text-align: center;
+        max-width: 400px;
+      }
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+      p {
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 2rem;
+      }
+      button {
+        background: linear-gradient(
+          135deg,
+          rgba(219, 236, 10, 0.95),
+          rgba(180, 247, 89, 0.95)
+        );
+        color: #0a0a0f;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>You're Offline</h1>
+      <p>
+        Controlplane could not reach the network. Please check your connection
+        and try again.
+      </p>
+      <button onclick="window.location.reload()">Retry</button>
+    </div>
+  </body>
+</html>

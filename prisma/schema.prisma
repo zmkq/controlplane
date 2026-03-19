@@ -1,0 +1,491 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  username        String           @unique
+  name            String?
+  password        String
+  role            Role             @default(OWNER)
+  auditLogs       AuditLog[]
+  ownerStatements OwnerStatement[]
+  createdCloses   PeriodClose[]
+
+  @@index([email])
+  @@index([username])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  userId    String
+  action    String
+  details   Json
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([timestamp])
+}
+
+enum ProductType {
+  PROTEIN_POWDER
+  CREATINE
+  PRE_WORKOUT
+  AMINO_ACIDS
+  VITAMINS
+  ACCESSORIES
+  OTHER
+}
+
+model Product {
+  id               String            @id @default(cuid())
+  sku              String            @unique
+  barcode          String?           @unique
+  brand            String
+  name             String
+  flavor           String?
+  size             String?
+  attributes       Json?
+  images           String?
+  active           Boolean           @default(true)
+  quantity         Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  cost             Float             @default(0)
+  price            Float?            // Override price for offers/bundles
+  type             ProductType       @default(OTHER)
+  isBundle         Boolean           @default(false)
+  inventoryLots    InventoryLot[]
+  saleOrderLines   SaleOrderLine[]
+  supplierPOLines  SupplierPOLine[]
+  supplierProducts SupplierProduct[]
+  bundleItems      BundleItem[]      @relation("BundleParent")
+  partOfBundles    BundleItem[]      @relation("BundleChild")
+
+  @@index([active])
+  @@index([brand])
+  @@index([type])
+}
+
+model BundleItem {
+  id        String  @id @default(cuid())
+  bundleId  String
+  productId String
+  quantity  Int
+  bundle    Product @relation("BundleParent", fields: [bundleId], references: [id], onDelete: Cascade)
+  product   Product @relation("BundleChild", fields: [productId], references: [id])
+
+  @@unique([bundleId, productId])
+  @@index([bundleId])
+  @@index([productId])
+}
+
+model InventoryLot {
+  id         String    @id @default(cuid())
+  productId  String
+  quantity   Int
+  cost       Float
+  expiryDate DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  product    Product   @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([expiryDate])
+}
+
+model Supplier {
+  id                  String            @id @default(cuid())
+  name                String            @unique
+  contactName         String?
+  contactPhone        String?
+  contactEmail        String?
+  brands              String?
+  terms               String?
+  defaultLeadTimeDays Int?
+  feeRules            Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  partnerOrders       SaleOrder[]       @relation("SupplierSaleOrders")
+  supplierPOs         SupplierPO[]
+  products            SupplierProduct[]
+}
+
+model SupplierProduct {
+  id           String   @id @default(cuid())
+  productId    String
+  supplierId   String
+  baseCost     Float
+  lastCost     Float?
+  availability String?
+  minOrderQty  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id])
+  supplier     Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([productId, supplierId])
+  @@index([productId])
+  @@index([supplierId])
+}
+
+model PricingRule {
+  id        String    @id @default(cuid())
+  productId String?
+  brand     String?
+  markup    Float
+  rounding  Float?
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([brand])
+}
+
+model Customer {
+  id           String      @id @default(cuid())
+  name         String
+  phone        String      @unique
+  email        String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  country      String?     @default("Jordan")
+  notes        String?
+  tags         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  saleOrders   SaleOrder[]
+
+  @@index([phone])
+  @@index([name])
+}
+
+model SaleOrder {
+  id                   String          @id @default(cuid())
+  orderNo              String          @unique
+  date                 DateTime        @default(now())
+  channel              String          @default("online")
+  customerId           String
+  partnerId            String?
+  fulfillmentMode      FulfillmentMode @default(LIMITED)
+  shippingAddress      Json
+  paymentMethod        PaymentMethod
+  status               SaleOrderStatus @default(DRAFT)
+  subtotal             Float
+  discounts            Float           @default(0)
+  shippingFee          Float           @default(0)
+  paymentFees          Float           @default(0)
+  total                Float
+  customCostOverride   Float?
+  customProfitOverride Float?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  courierBooking       CourierBooking?
+  notifications        Notification[]  @relation("SaleOrderNotifications")
+  refunds              Refund[]
+  customer             Customer        @relation(fields: [customerId], references: [id])
+  partner              Supplier?       @relation("SupplierSaleOrders", fields: [partnerId], references: [id])
+  lines                SaleOrderLine[]
+  supplierPOs          SupplierPO[]
+  orderExpenses        OrderExpense[]
+
+  @@index([status])
+  @@index([date])
+  @@index([customerId])
+  @@index([partnerId])
+  @@index([fulfillmentMode])
+  @@index([channel])
+}
+
+model SaleOrderLine {
+  id          String    @id @default(cuid())
+  saleOrderId String
+  productId   String
+  quantity    Int
+  unitPrice   Float
+  lineTotal   Float
+  cogs        Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  product     Product   @relation(fields: [productId], references: [id])
+  saleOrder   SaleOrder @relation(fields: [saleOrderId], references: [id])
+
+  @@index([saleOrderId])
+  @@index([productId])
+}
+
+model SupplierPO {
+  id          String           @id @default(cuid())
+  poNo        String           @unique
+  saleOrderId String?
+  supplierId  String
+  status      POStatus         @default(CREATED)
+  expectedAt  DateTime?
+  currency    String           @default("JOD")
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  saleOrder   SaleOrder?       @relation(fields: [saleOrderId], references: [id])
+  supplier    Supplier         @relation(fields: [supplierId], references: [id])
+  lines       SupplierPOLine[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([saleOrderId])
+}
+
+model SupplierPOLine {
+  id           String     @id @default(cuid())
+  supplierPOId String
+  productId    String
+  quantity     Int
+  unitCost     Float
+  lineTotal    Float
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  product      Product    @relation(fields: [productId], references: [id])
+  supplierPO   SupplierPO @relation(fields: [supplierPOId], references: [id])
+
+  @@index([supplierPOId])
+  @@index([productId])
+}
+
+model CourierBooking {
+  id           String    @id @default(cuid())
+  saleOrderId  String    @unique
+  carrier      String
+  airwayBillNo String    @unique
+  pickupAt     DateTime?
+  deliveredAt  DateTime?
+  status       String
+  estimatedFee Float?
+  actualFee    Float?
+  codAmount    Float?
+  codStatus    CODStatus @default(PENDING)
+  attachments  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  saleOrder    SaleOrder @relation(fields: [saleOrderId], references: [id])
+
+  @@index([saleOrderId])
+  @@index([status])
+}
+
+model Expense {
+  id        String          @id @default(cuid())
+  category  ExpenseCategory
+  amount    Float
+  date      DateTime
+  vendor    String?
+  linkedTo  String?
+  notes     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([date])
+  @@index([category])
+}
+
+model OrderExpense {
+  id          String                @id @default(cuid())
+  saleOrderId String
+  category    OrderExpenseCategory
+  description String?
+  amount      Float
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  saleOrder   SaleOrder             @relation(fields: [saleOrderId], references: [id], onDelete: Cascade)
+
+  @@index([saleOrderId])
+}
+
+model Refund {
+  id          String       @id @default(cuid())
+  saleOrderId String
+  amount      Float
+  reason      RefundReason
+  method      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  saleOrder   SaleOrder    @relation(fields: [saleOrderId], references: [id])
+
+  @@index([saleOrderId])
+}
+
+model PeriodClose {
+  id         String           @id @default(cuid())
+  month      Int
+  year       Int
+  closedById String
+  closedAt   DateTime         @default(now())
+  notes      String?
+  statements OwnerStatement[]
+  closedBy   User             @relation(fields: [closedById], references: [id])
+
+  @@unique([month, year])
+  @@index([closedById])
+}
+
+model OwnerStatement {
+  id          String      @id @default(cuid())
+  periodId    String
+  ownerId     String
+  shareAmount Float
+  withdrawals Float       @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  owner       User        @relation(fields: [ownerId], references: [id])
+  period      PeriodClose @relation(fields: [periodId], references: [id])
+
+  @@index([periodId])
+  @@index([ownerId])
+}
+
+model AlertRule {
+  id        String   @id @default(cuid())
+  metric    String
+  threshold Float
+  direction String
+  window    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AlertEvent {
+  id        String   @id @default(cuid())
+  ruleId    String
+  timestamp DateTime @default(now())
+  details   Json
+}
+
+model Notification {
+  id          String     @id @default(cuid())
+  title       String
+  body        String
+  saleOrderId String?
+  read        Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  saleOrder   SaleOrder? @relation("SaleOrderNotifications", fields: [saleOrderId], references: [id])
+
+  @@index([saleOrderId])
+  @@index([read])
+}
+
+model AppSettings {
+  id                 String   @id @default(cuid())
+  language           String   @default("en")
+  phoneFormat        String   @default("international")
+  timezone           String   @default("Asia/Amman")
+  brandColor         String   @default("#dbec0a")
+  emailNotifications Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+enum Role {
+  OWNER
+}
+
+enum PaymentMethod {
+  COD
+  Card
+  Transfer
+}
+
+enum SaleOrderStatus {
+  DRAFT
+  AWAITING_SUPPLIER
+  SUPPLIER_CONFIRMED
+  AWAITING_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELED
+  RETURNED
+}
+
+enum FulfillmentMode {
+  LIMITED
+  ON_DEMAND
+}
+
+enum POStatus {
+  CREATED
+  CONFIRMED
+  SHIPPED
+  CANCELED
+}
+
+enum CODStatus {
+  PENDING
+  REMITTED
+}
+
+enum ExpenseCategory {
+  COURIER_FEE
+  PAYMENT_FEE
+  MARKETING
+  REFUND
+  MISC
+}
+
+enum RefundReason {
+  OOS
+  CUSTOMER_CANCEL
+  DAMAGE
+  FAILED_DELIVERY
+}
+
+enum OrderExpenseCategory {
+  SHAKER
+  PACKAGING
+  HANDLING
+  GIFT_WRAP
+  RUSH_FEE
+  MISC
+}
+
+model PushSubscription {
+  id           String          @id @default(cuid())
+  endpoint     String          @unique
+  auth         String
+  p256dh       String
+  deviceName   String?
+  deviceType   String?         // "mobile", "desktop", "tablet"
+  userAgent    String?
+  lastSeen     DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  scanSessions QRScanSession[] @relation("DeviceSessions")
+}
+
+model QRScanSession {
+  id           String       @id @default(cuid())
+  deviceId     String
+  status       QRScanStatus @default(PENDING)
+  scannedValue String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  expiresAt    DateTime
+  device       PushSubscription @relation("DeviceSessions", fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+}
+
+enum QRScanStatus {
+  PENDING
+  SCANNING
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}

@@ -1,0 +1,25 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Living Hex Pattern: Drifting vertically -->
+    <pattern id="hex-grid" width="40" height="70" patternUnits="userSpaceOnUse" patternTransform="scale(0.5)">
+      <path d="M20 0 L40 17.5 L40 52.5 L20 70 L0 52.5 L0 17.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5">
+        <!-- Subtle shimmer on the strokes -->
+        <animate attributeName="stroke-opacity" values="0.1;0.4;0.1" dur="5s" repeatCount="indefinite" />
+      </path>
+      <!-- Seamless vertical drift (Data flow effect) -->
+      <animateTransform attributeName="patternTransform" type="translate" from="0 0" to="0 70" dur="20s" repeatCount="indefinite" additive="sum"/>
+    </pattern>
+    
+    <!-- Breathing Core Glow -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="rgba(219, 236, 10, 0.15)">
+        <animate attributeName="stop-opacity" values="0.1;0.25;0.1" dur="4s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="transparent" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  
+  <rect width="100%" height="100%" fill="#02030a" opacity="0.2" /> <!-- Base dark tint for contrast -->
+  <rect width="100%" height="100%" fill="url(#hex-grid)" />
+  <rect width="100%" height="100%" fill="url(#glow)" />
+</svg>

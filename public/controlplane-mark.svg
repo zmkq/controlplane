@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Controlplane Mark</title>
+  <desc id="desc">Abstract control grid mark for Controlplane.</desc>
+  <defs>
+    <linearGradient id="cp-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dbec0a" />
+      <stop offset="55%" stop-color="#8fdc32" />
+      <stop offset="100%" stop-color="#4cc9ff" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#040404" />
+  <rect x="20" y="20" width="88" height="88" rx="22" fill="url(#cp-gradient)" opacity="0.12" />
+  <path d="M32 45.5C32 38.596 37.596 33 44.5 33h39C90.404 33 96 38.596 96 45.5v6c0 6.904-5.596 12.5-12.5 12.5h-39C37.596 64 32 58.404 32 51.5v-6Z" fill="url(#cp-gradient)" />
+  <path d="M32 76.5C32 69.596 37.596 64 44.5 64h16C67.404 64 73 69.596 73 76.5v7C73 90.404 67.404 96 60.5 96h-16C37.596 96 32 90.404 32 83.5v-7Z" fill="#f5f7fb" opacity="0.96" />
+  <path d="M76 76.5C76 69.596 81.596 64 88.5 64h0C95.404 64 101 69.596 101 76.5v7C101 90.404 95.404 96 88.5 96h0C81.596 96 76 90.404 76 83.5v-7Z" fill="url(#cp-gradient)" />
+</svg>

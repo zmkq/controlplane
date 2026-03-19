@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "ProductType" AS ENUM ('PROTEIN_POWDER', 'CREATINE', 'PRE_WORKOUT', 'AMINO_ACIDS', 'VITAMINS', 'ACCESSORIES', 'OTHER');
+
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN     "type" "ProductType" NOT NULL DEFAULT 'OTHER';

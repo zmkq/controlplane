@@ -1,0 +1,12 @@
+import { getAppSettings } from '@/lib/settings';
+import { SettingsClient } from '@/components/settings/settings-client';
+
+export default async function SettingsPage() {
+  const settings = await getAppSettings();
+
+  return (
+    <div className="space-y-6 px-4 pb-32 pt-4 sm:px-6 xl:px-10">
+      <SettingsClient initialSettings={settings} />
+    </div>
+  );
+}

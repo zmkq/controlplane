@@ -1,0 +1,52 @@
+import { GlassSkeleton } from '@/components/ui/glass-skeleton';
+
+export function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <section className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-8">
+        <GlassSkeleton className="h-4 w-32" />
+        <GlassSkeleton className="mt-4 h-10 w-64" />
+        <GlassSkeleton className="mt-3 h-4 w-96" />
+      </section>
+
+      {/* KPI Cards */}
+      <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-6"
+          >
+            <GlassSkeleton className="h-4 w-24" />
+            <GlassSkeleton className="mt-4 h-12 w-32" />
+            <GlassSkeleton className="mt-3 h-3 w-20" />
+          </div>
+        ))}
+      </section>
+
+      {/* Charts */}
+      <section className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div
+            key={i}
+            className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-8"
+          >
+            <GlassSkeleton className="h-6 w-40" />
+            <GlassSkeleton className="mt-8 h-64 w-full rounded-xl" />
+          </div>
+        ))}
+      </section>
+
+      {/* Quick Actions */}
+      <section className="glass-panel rounded-[2rem] border border-white/5 bg-white/5 px-6 py-8">
+        <GlassSkeleton className="h-6 w-32" />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <GlassSkeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
