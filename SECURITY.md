@@ -6,7 +6,7 @@ Do not open a public GitHub issue for security-sensitive findings.
 
 Instead, report the issue privately to:
 
-- `security@controlplane.local`
+- `mohgerq@gmail.com`
 
 Include:
 
