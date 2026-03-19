@@ -276,11 +276,21 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
     throw new Error('No orders found');
   }
 
+  const changedOrders = orders.filter((order) => order.status !== status);
+
+  if (changedOrders.length === 0) {
+    return {
+      updatedCount: 0,
+      skippedCount: orders.length,
+      status,
+    };
+  }
+
   // Update all orders in a single transaction
   await prisma.$transaction(async (tx) => {
-    // Batch update all orders
+    // Batch update only orders that actually changed
     await tx.saleOrder.updateMany({
-      where: { id: { in: ids } },
+      where: { id: { in: changedOrders.map((order) => order.id) } },
       data: { status },
     });
 
@@ -306,9 +316,7 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
       };
 
       // Create notifications for orders that changed status
-      const notificationsToCreate = orders
-        .filter(order => order.status !== status)
-        .map(order => {
+      const notificationsToCreate = changedOrders.map(order => {
           const statusBodies: Record<SaleStatus, string> = {
             DELIVERED: `${order.orderNo} • ${order.customer?.name ?? 'Customer'}`,
             OUT_FOR_DELIVERY: `${order.orderNo} • En route to ${order.customer?.name ?? 'customer'}`,
@@ -327,7 +335,7 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
             body: statusBodies[status],
             saleOrderId: order.id,
           };
-        });
+      });
 
       // Batch create notifications
       if (notificationsToCreate.length > 0) {
@@ -350,9 +358,7 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
   if (importantStatuses.includes(status)) {
     // Fire and forget - don't block the response
     Promise.all(
-      orders
-        .filter(order => order.status !== status)
-        .map(async (order) => {
+      changedOrders.map(async (order) => {
           const statusMessages: Record<SaleStatus, string> = {
             DELIVERED: 'Order Delivered',
             OUT_FOR_DELIVERY: 'Out for Delivery',
@@ -386,7 +392,7 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
           } catch (error) {
             console.error(`Failed to send push notification for order ${order.id}:`, error);
           }
-        })
+      })
     ).catch(error => {
       console.error('Failed to send some push notifications:', error);
     });
@@ -394,5 +400,10 @@ export async function bulkUpdateSaleStatus(input: z.infer<typeof bulkUpdateSaleS
 
   revalidatePath('/sales');
   revalidatePath('/');
-}
 
+  return {
+    updatedCount: changedOrders.length,
+    skippedCount: orders.length - changedOrders.length,
+    status,
+  };
+}

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
 import { BentoGrid, BentoCard } from '@/components/dashboard/bento-grid';
@@ -17,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { bulkUpdateSaleStatus } from '@/app/sales/actions';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from '@/lib/toast';
 
 type ShippingMeta = {
   deliveryMethod?: 'delivery' | 'pickup';
@@ -64,6 +66,7 @@ export function SalesClient({
   searchQuery,
 }: SalesClientProps) {
   const { t } = useTranslations();
+  const router = useRouter();
   const [selectedSales, setSelectedSales] = useState<Set<string>>(new Set());
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -94,15 +97,28 @@ export function SalesClient({
   const handleBulkStatusUpdate = async (status: string) => {
     startTransition(async () => {
       try {
-        await bulkUpdateSaleStatus({
+        const result = await bulkUpdateSaleStatus({
           ids: Array.from(selectedSales),
           status: status as any,
         });
+
+        if (result.updatedCount === 0) {
+          toast.info('No order statuses changed', {
+            description: `${result.skippedCount} selected order${result.skippedCount === 1 ? '' : 's'} already matched that status.`,
+          });
+          setShowStatusDropdown(false);
+          return;
+        }
+
         setSelectedSales(new Set());
         setShowStatusDropdown(false);
+        router.refresh();
+        toast.success('Order statuses updated', {
+          description: `${result.updatedCount} order${result.updatedCount === 1 ? '' : 's'} moved to ${statusOptions.find((option) => option.value === status)?.label ?? status}.`,
+        });
       } catch (error) {
         console.error('Failed to update status:', error);
-        alert('Failed to update order status');
+        toast.error('Failed to update order status');
       }
     });
   };
