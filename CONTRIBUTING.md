@@ -9,6 +9,7 @@
 
 ```bash
 bun install
+bun run env:check
 bun run db:setup
 bun run dev
 ```
@@ -21,6 +22,7 @@ If you are on PowerShell, use `Copy-Item .env.example .env.local` instead of `cp
 
 - Run `bun run check`
 - Run `bun run build`
+- Run `bun run env:check` if you changed the runtime contract or onboarding docs
 
 ## Pull request expectations
 

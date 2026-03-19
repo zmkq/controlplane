@@ -2,6 +2,7 @@
 
 - Secrets removed from tracked files and rotated outside the repo.
 - `.env.example` matches the real runtime contract.
+- `bun run env:check` passes with the intended deployment env set.
 - `bun run check` passes.
 - `bun run build` passes.
 - CI/staging uses `bun run db:migrate:deploy`, not `bun run db:migrate`.

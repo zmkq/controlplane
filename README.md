@@ -79,6 +79,7 @@ Copy-Item .env.example .env.local
 Fill in the required variables in `.env.local`, then run:
 
 ```bash
+bun run env:check
 bun run db:setup
 bun run dev
 ```
@@ -157,6 +158,7 @@ Useful commands:
 
 ```bash
 bun run dev
+bun run env:check
 bun run check
 bun run lint
 bun run typecheck
@@ -249,6 +251,7 @@ bun run build
 ## Scripts Reference :scroll:
 
 - `bun run dev`: start the app in development mode.
+- `bun run env:check`: validate required env vars and report optional feature readiness.
 - `bun run build`: generate Prisma client and build the production app.
 - `bun run start`: run the production server.
 - `bun run lint`: run ESLint.
