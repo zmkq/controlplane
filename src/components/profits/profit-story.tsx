@@ -27,10 +27,8 @@ type ProfitStoryProps = {
 export function ProfitStory({ isOpen, onClose, period, data }: ProfitStoryProps) {
   const [step, setStep] = useState(0);
   
-  // Reset step when opened
   useEffect(() => {
     if (isOpen) {
-      setStep(0);
       // Auto-advance steps - Extended durations for "every order" visualization
       const timers = [
         setTimeout(() => setStep(1), 2000), // Intro -> Revenue

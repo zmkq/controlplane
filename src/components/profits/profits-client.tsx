@@ -86,6 +86,7 @@ export function ProfitsClient({
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [isStoryOpen, setIsStoryOpen] = useState(shouldAutoOpenStory);
+  const [storyRunKey, setStoryRunKey] = useState(shouldAutoOpenStory ? 1 : 0);
 
   useEffect(() => {
     if (shouldAutoOpenStory) {
@@ -97,6 +98,11 @@ export function ProfitsClient({
       });
     }
   }, [searchParams, router, shouldAutoOpenStory]);
+
+  const openStory = () => {
+    setStoryRunKey((current) => current + 1);
+    setIsStoryOpen(true);
+  };
 
   const periodOptions = [
     { value: 'week', label: 'Last Week' },
@@ -118,7 +124,7 @@ export function ProfitsClient({
       params.set('period', period);
     }
     router.push(`/profits${params.toString() ? `?${params.toString()}` : ''}`);
-    setIsStoryOpen(true);
+    openStory();
   };
 
   const handleCustomDateApply = () => {
@@ -126,7 +132,7 @@ export function ProfitsClient({
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
     router.push(`/profits${params.toString() ? `?${params.toString()}` : ''}`);
-    setIsStoryOpen(true);
+    openStory();
   };
 
   const handleClearDates = () => {
@@ -169,6 +175,7 @@ export function ProfitsClient({
   return (
     <>
       <ProfitStory 
+        key={storyRunKey}
         isOpen={isStoryOpen} 
         onClose={() => setIsStoryOpen(false)}
         period={currentPeriod}
