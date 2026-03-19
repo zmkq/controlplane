@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, TrendingDown, DollarSign, Package, Truck, Receipt } from 'lucide-react';
+import { X, TrendingUp, DollarSign, Package, Truck, Receipt } from 'lucide-react';
 
 type ProfitStoryProps = {
   isOpen: boolean;

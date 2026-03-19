@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Receipt, Wallet, Info, PieChart as PieChartIcon, BarChart3, RefreshCw } from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, Receipt, Wallet, Info, PieChart as PieChartIcon, BarChart3, RefreshCw } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -44,15 +44,6 @@ type ProfitsClientProps = {
     _sum: { amount: number | null };
   }>;
   salesCount: number;
-  recentSales: Array<{
-    id: string;
-    orderNo: string;
-    customerName: string;
-    date: Date;
-    revenue: number;
-    profit: number;
-    margin: number;
-  }>;
   storySales: Array<{
     id: string;
     orderNo: string;
@@ -74,7 +65,6 @@ export function ProfitsClient({
   monthlyData,
   expensesByCategory,
   salesCount,
-  recentSales,
   storySales,
   currentPeriod,
 }: ProfitsClientProps) {
@@ -272,7 +262,6 @@ export function ProfitsClient({
             label={t('profits.metrics.totalRevenue', 'Total Revenue')}
             value={`JOD ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon={<DollarSign className="h-5 w-5" />}
-            trend={profitMargin > 30 ? 'up' : profitMargin > 15 ? 'neutral' : 'down'}
             description={t('profits.metrics.totalRevenueDesc', 'Sum of all sales')}
             color="text-primary"
           />
@@ -280,7 +269,6 @@ export function ProfitsClient({
             label={t('profits.metrics.totalCogs', 'Total COGS')}
             value={`JOD ${totalCogs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon={<Receipt className="h-5 w-5" />}
-            trend="neutral"
             description={t('profits.metrics.totalCogsDesc', 'Cost of goods sold')}
             color="text-orange-400"
           />
@@ -288,7 +276,6 @@ export function ProfitsClient({
             label={t('profits.metrics.totalExpenses', 'Total Expenses')}
             value={`JOD ${(totalExpenses + totalOrderExpenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon={<Wallet className="h-5 w-5" />}
-            trend="neutral"
             description={t('profits.metrics.totalExpensesDesc', 'All business expenses')}
             color="text-orange-400"
             tooltip="Includes both general expenses and specific order expenses (e.g. packaging, extra fees)"
@@ -297,7 +284,6 @@ export function ProfitsClient({
             label={t('profits.metrics.netProfit', 'Net Profit')}
             value={`JOD ${netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon={<TrendingUp className="h-5 w-5" />}
-            trend={netProfit > 0 ? 'up' : 'down'}
             description={`${profitMargin.toFixed(1)}% ${t('profits.metrics.margin', 'margin')}`}
             color={netProfit > 0 ? 'text-emerald-400' : 'text-destructive'}
             isHighlight
@@ -478,7 +464,6 @@ function MetricCard({
   label,
   value,
   icon,
-  trend,
   description,
   color = 'text-foreground',
   isHighlight = false,
@@ -487,7 +472,6 @@ function MetricCard({
   label: string;
   value: string;
   icon: React.ReactNode;
-  trend: 'up' | 'down' | 'neutral';
   description: string;
   color?: string;
   isHighlight?: boolean;

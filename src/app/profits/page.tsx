@@ -106,7 +106,6 @@ export default async function ProfitsPage({
   const totalCogs = Number(totalCogsResult._sum.cogs ?? 0);
   const totalExpenses = Number(totalExpensesResult._sum.amount ?? 0);
   const totalOrderExpenses = Number(totalOrderExpensesResult._sum.amount ?? 0);
-  const netProfit = totalRevenue - totalCogs - totalExpenses - totalOrderExpenses;
   
   // 1. Fetch Overrides for All Time Adjustment
   const overriddenOrders = await prisma.saleOrder.findMany({
@@ -245,41 +244,6 @@ export default async function ProfitsPage({
     orderBy: { _sum: { amount: 'desc' } },
   });
 
-  // Recent Sales Profit Analysis
-  const recentSalesRaw = await prisma.saleOrder.findMany({
-    take: 8,
-    orderBy: { date: 'desc' },
-    where: { 
-      ...dateFilter,
-      status: { notIn: ['CANCELED', 'RETURNED', 'DRAFT'] },
-    },
-    include: {
-      customer: { select: { name: true } },
-      lines: { select: { lineTotal: true, cogs: true } },
-      orderExpenses: { select: { amount: true } },
-    },
-  });
-
-  const recentSales = recentSalesRaw.map(sale => {
-    const revenue = sale.lines.reduce((sum, line) => sum + line.lineTotal, 0);
-    const cogs = sale.lines.reduce((sum, line) => sum + (line.cogs || 0), 0);
-    const expenses = sale.orderExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    
-    const actualCost = sale.customCostOverride ?? cogs;
-    const profit = sale.customProfitOverride ?? (revenue - actualCost - expenses);
-    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-    return {
-      id: sale.id,
-      orderNo: sale.orderNo,
-      customerName: sale.customer.name,
-      date: sale.date,
-      revenue,
-      profit,
-      margin,
-    };
-  });
-
   // Fetch sales for Profit Story (limit to 500 for performance)
   const storySalesRaw = await prisma.saleOrder.findMany({
     take: 500,
@@ -322,7 +286,6 @@ export default async function ProfitsPage({
       expensesByCategory={expensesByCategory}
       orderExpensesByCategory={orderExpensesByCategory}
       salesCount={salesCount}
-      recentSales={recentSales}
       storySales={storySales}
       currentPeriod={period}
     />
