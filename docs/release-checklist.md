@@ -6,6 +6,7 @@
 - `bun run typecheck` passes.
 - `bun run test` passes.
 - `bun run build` passes.
+- CI/staging uses `bun run db:migrate:deploy`, not `bun run db:migrate`.
 - `/api/health` returns `ok` on staging.
 - Login, dashboard, customer detail page, and report flows are smoke-tested.
 - English and Arabic toggling is verified.

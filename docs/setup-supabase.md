@@ -19,6 +19,8 @@ bun run db:migrate
 bun run db:seed
 ```
 
+For CI, staging, or production deploys, use `bun run db:migrate:deploy` instead of `bun run db:migrate`.
+
 ## Notes
 
 - Use the pooled URL for app runtime traffic.

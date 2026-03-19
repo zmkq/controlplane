@@ -14,6 +14,8 @@ bun run db:seed
 bun run dev
 ```
 
+Use `bun run db:migrate` for local development only. For CI, staging, or production verification, use `bun run db:migrate:deploy`.
+
 ## Before opening a pull request
 
 - Run `bun run lint`

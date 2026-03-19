@@ -79,6 +79,8 @@ bun run db:seed
 bun run dev
 ```
 
+Use `bun run db:migrate` only for local development. In CI, staging, or production, use `bun run db:migrate:deploy`.
+
 Open `http://localhost:3000`.
 
 Default seeded demo credentials:
@@ -131,6 +133,8 @@ bun run db:migrate
 bun run db:seed
 ```
 
+For non-development environments, run `bun run db:migrate:deploy` instead of `bun run db:migrate`.
+
 ### 4. Verify connectivity
 
 Start the app and hit:
@@ -161,6 +165,7 @@ Database commands:
 ```bash
 bun run db:generate
 bun run db:migrate
+bun run db:migrate:deploy
 bun run db:seed
 bun run db:reset
 ```
@@ -239,7 +244,8 @@ bun run build
 - `bun run test`: run Vitest unit tests.
 - `bun run test:e2e`: run Playwright smoke tests.
 - `bun run db:generate`: run `prisma generate`.
-- `bun run db:migrate`: run `prisma migrate dev`.
+- `bun run db:migrate`: run `prisma migrate dev` for local development.
+- `bun run db:migrate:deploy`: run `prisma migrate deploy` for CI, staging, and production.
 - `bun run db:seed`: seed demo-safe local data.
 - `bun run db:reset`: reset and recreate the local database.
 - `bun run ci`: run the local release gate sequence.
