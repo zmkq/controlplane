@@ -155,7 +155,7 @@ function ChartTooltipContent({
 }: ChartTooltipContentProps) {
   const { config } = useChart()
 
-  const tooltipItems = payload ?? []
+  const tooltipItems = React.useMemo(() => payload ?? [], [payload])
 
   const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !tooltipItems.length) {
