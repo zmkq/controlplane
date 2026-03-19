@@ -2,7 +2,6 @@
 
 <p align="center">
   <a href="./docs/marketing_video.mp4">
-    <img src="./docs/screenshots/dashboard-overview.png" alt="Controlplane video preview" width="100%" />
   </a>
 </p>
 
