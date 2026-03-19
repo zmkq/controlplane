@@ -32,7 +32,11 @@ export function SaleDeleteButton({
       try {
         await deleteSale({ id: saleId });
         toast.success('Order deleted');
-        router.push('/sales');
+        if (redirectToList) {
+          router.push('/sales');
+          return;
+        }
+
         router.refresh();
       } catch (error) {
         console.error('Failed to delete sale:', error);

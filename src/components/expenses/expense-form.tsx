@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createExpense } from '@/app/expenses/actions';
 import { Button } from '@/components/ui/button';

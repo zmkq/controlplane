@@ -1,11 +1,8 @@
 'use client';
 
 import { Toaster as SonnerToaster } from 'sonner';
-import { useTranslations } from '@/lib/i18n';
 
 export function Toaster() {
-  const { lang } = useTranslations();
-
   return (
     <SonnerToaster
       position="top-right"

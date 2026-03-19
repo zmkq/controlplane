@@ -51,7 +51,6 @@ export async function calculateProductTrend(
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
   const [currentMonthSales, previousMonthSales] = await Promise.all([
     prisma.saleOrderLine.aggregate({

@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   ShoppingCart,
   ScrollText,
-  Sparkles,
   Boxes,
   Users,
   Settings2,
@@ -18,7 +17,6 @@ import {
   TrendingUp,
   Clock,
   ChevronRight,
-  Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
