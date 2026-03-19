@@ -16,7 +16,7 @@ export function Navbar() {
     <nav
       className="fixed inset-x-0 top-0 z-50 transition-all duration-300"
       aria-label="Primary">
-      <div className="absolute inset-0 border-b border-white/6 bg-[linear-gradient(180deg,rgba(2,3,10,0.92)_0%,rgba(2,3,10,0.78)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
+      <div className="absolute inset-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(2,3,10,0.92)_0%,rgba(2,3,10,0.78)_100%)] shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
       <div className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent" />
 
       <div className="relative flex w-full items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.85rem+var(--safe-top))] sm:px-6 lg:px-8">

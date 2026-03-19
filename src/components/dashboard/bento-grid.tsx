@@ -1,11 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
   motion,
   useMotionTemplate,
   useMotionValue,
-  useSpring,
 } from 'framer-motion';
 import { MouseEvent, useMemo } from 'react';
 
@@ -30,15 +30,13 @@ export function BentoGrid({
         },
       }}
       className={cn(
-        'grid grid-cols-1 gap-4 md:auto-rows-[minmax(100px,auto)] md:grid-cols-3 lg:grid-cols-4',
+        'grid grid-cols-1 gap-4 sm:gap-5 md:auto-rows-[minmax(100px,auto)] md:grid-cols-3 lg:grid-cols-4 xl:gap-6',
         className,
       )}>
       {children}
     </motion.div>
   );
 }
-
-import Image from 'next/image';
 
 export function BentoCard({
   className,
@@ -70,7 +68,7 @@ export function BentoCard({
   return (
     <motion.div
       className={cn(
-        'group relative overflow-hidden rounded-[2rem] glass-widget p-6 transition-all hover:bg-white/5 snap-start animate-[breathe-card_8s_ease-in-out_infinite]',
+        'group relative overflow-hidden rounded-[1.75rem] glass-widget p-5 transition-all animate-[breathe-card_8s_ease-in-out_infinite] hover:bg-white/5 sm:rounded-[2rem] sm:p-6',
         colSpan === 2 && 'md:col-span-2',
         colSpan === 3 && 'md:col-span-3',
         colSpan === 4 && 'md:col-span-4', // Full width
