@@ -169,7 +169,10 @@ export function SettingsClient({
   };
 
   const exportCsv = () => {
-    toast.info(t('settings.data.export', 'Export CSV snapshot'));
+    toast.info(t('settings.data.export', 'Export CSV snapshot'), {
+      description: 'Preparing a ZIP snapshot with the latest operational CSVs.',
+    });
+    window.location.assign('/api/settings/export');
   };
 
   const purgeDrafts = () => {
