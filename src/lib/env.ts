@@ -1,6 +1,7 @@
 'server-only';
 
 import { z } from 'zod';
+import { deriveFeatureFlags } from '@/lib/feature-flags';
 
 const emptyStringToUndefined = (value: unknown) =>
   typeof value === 'string' && value.trim() === '' ? undefined : value;
@@ -51,7 +52,4 @@ export const env = serverEnvSchema.parse({
   DEMO_ADMIN_PASSWORD: process.env.DEMO_ADMIN_PASSWORD,
 });
 
-export const featureFlags = {
-  imageUpload: Boolean(env.IMGBB_API_KEY),
-  pushNotifications: Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY),
-};
+export const featureFlags = deriveFeatureFlags(env);
