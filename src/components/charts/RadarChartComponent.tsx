@@ -9,8 +9,7 @@ import {
   Radar,
   ResponsiveContainer,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { motion } from 'framer-motion';
+import { CardTitle } from '@/components/ui/card';
 
 type RadarDatum = {
   label: string;
@@ -50,6 +49,9 @@ export function RadarChartComponent({
 
       <div className="pb-3 relative z-10 p-6 pb-0">
         <CardTitle className="text-lg font-semibold text-foreground">{title}</CardTitle>
+        {subtitle ? (
+          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+        ) : null}
       </div>
       <div className="p-0 relative z-10 p-6 pt-0 flex-1">
         {safeData.length === 0 ? (

@@ -1,7 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Facebook, Instagram, Phone, Globe, MessageCircle, Store, Zap } from 'lucide-react';
+import { Facebook, Instagram, Globe, MessageCircle, Store, Zap } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';

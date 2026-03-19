@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { TrendingUp, ArrowUpRight, Activity } from 'lucide-react';
+import { TrendingUp, Activity } from 'lucide-react';
 
 interface KpiProps {
   label: string;
@@ -72,9 +72,11 @@ export function ProfitCard({ label, value, trend, className }: KpiProps) {
         <p className="text-3xl font-bold text-foreground sm:text-4xl">
           <span className="text-holographic">{value}</span>
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-           <span className="text-emerald-400">{trend}</span> vs last month
-        </p>
+        {trend ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+             <span className="text-emerald-400">{trend}</span> vs last month
+          </p>
+        ) : null}
       </div>
     </div>
   );

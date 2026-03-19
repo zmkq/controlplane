@@ -1,15 +1,13 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { PackageCheck, Zap, ArrowUpRight, Users, Sparkles, Truck } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { useOperationalMetrics } from '@/hooks/use-operational-metrics';
 import { BentoGrid, BentoCard } from '@/components/dashboard/bento-grid';
 import { RevenueCard, ProfitCard, LiveRadarCard } from '@/components/dashboard/holographic-kpi';
-import { cn } from '@/lib/utils';
+
 // Lazy load new components
 const PerformanceChartComponent = dynamic(
   () => import('@/components/dashboard/performance-chart').then(mod => ({ default: mod.PerformanceChart })),
@@ -26,14 +24,6 @@ const LiveActivityFeedComponent = dynamic(
 const ChannelPerformanceComponent = dynamic(
   () => import('@/components/dashboard/channel-performance').then(mod => ({ default: mod.ChannelPerformance })),
   { ssr: false, loading: () => <ChartSkeleton /> }
-);
-// Lazy load heavy chart components - reduces initial bundle by ~80KB
-const LineChartComponent = dynamic(
-  () => import('@/components/charts/LineChartComponent').then(mod => ({ default: mod.LineChartComponent })),
-  { 
-    ssr: false,
-    loading: () => <ChartSkeleton />
-  }
 );
 
 const GlowingBarChart = dynamic(
@@ -72,21 +62,6 @@ type Order = {
   merchandiseTotal?: number;
 };
 
-type LimitedStockItem = {
-  sku: string;
-  name: string;
-  qty: number;
-  margin: number;
-  trend: number;
-};
-
-type Partner = {
-  name: string;
-  turnaround: string;
-  reliability: number;
-  note: string;
-};
-
 interface DashboardClientProps {
   kpis?: {
     revenue: number;
@@ -96,13 +71,7 @@ interface DashboardClientProps {
     revenueGrowth?: number;
     profitGrowth?: number;
   };
-  orderMix?: {
-    limited: number;
-    onDemand: number;
-  };
   orders?: Order[];
-  limitedStock?: LimitedStockItem[];
-  partners?: Partner[];
   monthlyData?: { name: string; revenue: number; expenses: number }[];
   productPerformanceData?: { name: string; value: number }[];
   inventoryLevelsData?: { name: string; value: number }[];
@@ -112,16 +81,13 @@ const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.1.0';
 
 export function DashboardClient({
   kpis,
-  orderMix,
   orders = [],
-  limitedStock = [],
-  partners = [],
   monthlyData = [],
   productPerformanceData = [],
   inventoryLevelsData = [],
 }: DashboardClientProps) {
   const { t } = useTranslations();
-  const { metrics, loading: metricsLoading } = useOperationalMetrics();
+  const { metrics } = useOperationalMetrics();
 
   const safeKpis = useMemo(
     () => ({

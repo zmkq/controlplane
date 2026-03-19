@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { getCachedDashboardKPIs, getCachedGrowthMetrics } from '@/lib/cache';
 import { RevenueCard, ProfitCard } from '@/components/dashboard/holographic-kpi';
 import { BentoCard } from '@/components/dashboard/bento-grid';

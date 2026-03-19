@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Truck, CheckCircle2, CloudLightning } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ShoppingBag, Truck, CloudLightning } from 'lucide-react';
 import { useTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 

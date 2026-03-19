@@ -4,7 +4,7 @@ import { useId, useMemo } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardTitle } from '@/components/ui/card';
 import {
   ChartConfig,
   ChartContainer,
@@ -12,7 +12,6 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { motion } from 'framer-motion';
 
 type GlowingBarDatum = {
   label: string;
@@ -78,6 +77,9 @@ export function GlowingBarChart({
             </Badge>
           )}
         </CardTitle>
+        {subtitle ? (
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        ) : null}
       </div>
       <div className="min-h-[250px] md:h-[320px] flex-1 relative z-10 p-6 pt-2">
         {formattedData.length === 0 ? (
@@ -128,7 +130,7 @@ export function GlowingBarChart({
                   filter="url(#glow)"
                   animationDuration={1500}
                 >
-                  {formattedData.map((entry, index) => (
+                  {formattedData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={`url(#${gradientId})`} />
                   ))}
                 </Bar>
