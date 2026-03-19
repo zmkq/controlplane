@@ -31,19 +31,22 @@ export function ImageUpload({
     setPreview(value || null);
   }, [value]);
 
-  const validateFile = (file: File): string | null => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      return 'Invalid file type. Please upload JPG, PNG, or WebP images.';
-    }
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Invalid file type. Please upload JPG, PNG, or WebP images.';
+      }
 
-    const maxSize = maxSizeMB * 1024 * 1024;
-    if (file.size > maxSize) {
-      return `File size exceeds ${maxSizeMB}MB limit.`;
-    }
+      const maxSize = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSize) {
+        return `File size exceeds ${maxSizeMB}MB limit.`;
+      }
 
-    return null;
-  };
+      return null;
+    },
+    [maxSizeMB]
+  );
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -102,7 +105,7 @@ export function ImageUpload({
         setIsUploading(false);
       }
     },
-    [maxSizeMB, onChange]
+    [onChange, validateFile]
   );
 
   const handleDrop = useCallback(
