@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToImgBB } from '@/lib/imgbb';
+import { isImgbbConfigured, uploadToImgBB } from '@/lib/imgbb';
 
 /**
  * POST /api/upload-image
@@ -7,6 +7,13 @@ import { uploadToImgBB } from '@/lib/imgbb';
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!isImgbbConfigured) {
+      return NextResponse.json(
+        { error: 'Image uploads are not configured for this deployment' },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { imageBase64, type } = body;
 

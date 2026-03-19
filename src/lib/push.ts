@@ -4,7 +4,8 @@ import { APP_NAME, APP_PWA_ICON_192 } from '@/lib/app-config';
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:push@controlplane.local';
+const VAPID_SUBJECT =
+  process.env.VAPID_SUBJECT || 'mailto:push@controlplane.local';
 
 export const isPushConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 
@@ -14,9 +15,6 @@ if (isPushConfigured) {
     VAPID_PUBLIC_KEY as string,
     VAPID_PRIVATE_KEY as string,
   );
-  console.log('[Push] VAPID keys configured');
-} else {
-  console.warn('[Push] VAPID keys missing - push notifications disabled');
 }
 
 export interface PushNotificationPayload {
@@ -38,7 +36,7 @@ export async function broadcastPushNotification(
   payload: PushNotificationPayload,
 ): Promise<{ sent: number; failed: number }> {
   if (!isPushConfigured) {
-    console.warn('[Push] VAPID keys missing – skipping broadcast');
+    console.warn('[Push] VAPID keys missing - skipping broadcast');
     return { sent: 0, failed: 0 };
   }
 
@@ -53,7 +51,6 @@ export async function broadcastPushNotification(
       return { sent: 0, failed: 0 };
     }
 
-    // Prepare notification payload
     const notificationPayload: PushNotificationPayload = {
       title: payload.title || APP_NAME,
       body: payload.body || 'You have a new notification',
@@ -69,7 +66,6 @@ export async function broadcastPushNotification(
       requireInteraction: payload.requireInteraction ?? false,
     };
 
-    // Send to all subscriptions
     const results = await Promise.allSettled(
       subscriptions.map(async (subscription, index) => {
         try {
@@ -90,19 +86,18 @@ export async function broadcastPushNotification(
             JSON.stringify(notificationPayload),
           );
 
-          console.log(`[Push] ✓ Successfully sent to device ${index + 1}`);
+          console.log(`[Push] OK sent to device ${index + 1}`);
           return { success: true, endpoint: subscription.endpoint };
         } catch (error) {
           const webPushError = error as WebPushError;
           const statusCode = webPushError.statusCode;
 
-          console.error(`[Push] ✗ Failed to send to device ${index + 1}:`, {
+          console.error(`[Push] Failed to send to device ${index + 1}:`, {
             statusCode,
             message: webPushError.message,
             endpoint: subscription.endpoint.substring(0, 50),
           });
 
-          // Remove invalid subscriptions (404 = not found, 410 = gone)
           if (statusCode === 404 || statusCode === 410) {
             console.log(`[Push] Removing invalid subscription (${statusCode})`);
             await prisma.pushSubscription.delete({
@@ -120,7 +115,7 @@ export async function broadcastPushNotification(
     );
 
     const successful = results.filter(
-      (r) => r.status === 'fulfilled' && r.value.success,
+      (result) => result.status === 'fulfilled' && result.value.success,
     ).length;
     const failed = results.length - successful;
 

@@ -3,12 +3,8 @@
  * Documentation: https://api.imgbb.com/
  */
 
-const IMGBB_API_KEY =
-  process.env.IMGBB_API_KEY;
-
-if (!IMGBB_API_KEY) {
-  console.warn('IMGBB_API_KEY not set. Image uploads will fail.');
-}
+const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+export const isImgbbConfigured = Boolean(IMGBB_API_KEY);
 
 export interface ImgBBUploadResponse {
   data: {
@@ -55,7 +51,7 @@ export interface ImgBBUploadResponse {
  * @returns ImgBB image URL
  */
 export async function uploadToImgBB(imageBase64: string): Promise<string> {
-  if (!IMGBB_API_KEY) {
+  if (!isImgbbConfigured || !IMGBB_API_KEY) {
     throw new Error('ImgBB API key not configured');
   }
 
