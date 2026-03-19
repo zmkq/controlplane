@@ -429,10 +429,35 @@ export const en = {
     },
     "data": {
       "title": "Data & exports",
-      "description": "Export operational data or purge local drafts.",
-      "export": "Export CSV snapshot",
+      "description": "Core exports cover live operations. Full backups add audit trails and subscribed devices.",
+      "export": "Core export",
+      "fullExport": "Full backup",
+      "coreExportDescription": "Preparing a core ZIP snapshot with the latest operational CSVs.",
+      "fullExportDescription": "Preparing a full ZIP snapshot with audit logs and device subscriptions.",
       "purge": "Purge local drafts",
       "confirm": "This only clears cached drafts on this device."
+    },
+    "operations": {
+      "title": "Operational Status",
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "environment": "Environment",
+      "version": "Version",
+      "database": "Database",
+      "unavailable": "Unavailable",
+      "imageUpload": "Image uploads",
+      "pushNotifications": "Push notifications",
+      "runtime": "Runtime",
+      "checkedAt": "Last checked",
+      "warnings": "Operational warnings",
+      "enabled": "Enabled",
+      "partial": "Partial",
+      "disabled": "Disabled",
+      "warning": {
+        "pushPartial": "Push notifications are only partially configured. Set NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PUBLIC_KEY, and VAPID_PRIVATE_KEY together.",
+        "imageUploadDisabled": "Image uploads are disabled until IMGBB_API_KEY is set.",
+        "demoLoginDisabled": "Local demo login seeding is disabled until DEMO_ADMIN_PASSWORD is set."
+      }
     }
   },
   "profits": {

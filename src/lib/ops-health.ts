@@ -1,7 +1,12 @@
 import packageJson from '../../package.json';
 import { prisma } from '@/lib/prisma';
 import { env, featureFlags } from '@/lib/env';
-import { getOperationalWarnings, getPushFeatureState, type FeatureState } from '@/lib/ops-status';
+import {
+  getOperationalWarningCodes,
+  getPushFeatureState,
+  type FeatureState,
+  type OperationalWarningCode,
+} from '@/lib/ops-status';
 
 type ServiceState = 'ok' | 'error';
 
@@ -19,7 +24,7 @@ export type ApplicationHealth = {
     imageUpload: FeatureState;
     pushNotifications: FeatureState;
   };
-  warnings: string[];
+  warnings: OperationalWarningCode[];
 };
 
 export async function getApplicationHealth(): Promise<ApplicationHealth> {
@@ -50,6 +55,6 @@ export async function getApplicationHealth(): Promise<ApplicationHealth> {
       imageUpload: featureFlags.imageUpload ? 'enabled' : 'disabled',
       pushNotifications: getPushFeatureState(env),
     },
-    warnings: getOperationalWarnings(env),
+    warnings: getOperationalWarningCodes(env),
   };
 }

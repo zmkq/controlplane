@@ -4,7 +4,11 @@ import process from 'node:process';
 import { config as loadDotenv } from 'dotenv';
 import { ZodError } from 'zod';
 import { parseServerEnv } from '../src/lib/env-config';
-import { getOperationalWarnings, getPushFeatureState } from '../src/lib/ops-status';
+import {
+  getOperationalWarningCodes,
+  getOperationalWarningMessage,
+  getPushFeatureState,
+} from '../src/lib/ops-status';
 
 const cwd = process.cwd();
 const envFiles = ['.env', '.env.local'];
@@ -37,7 +41,7 @@ const loadedFiles = loadEnvFiles();
 
 try {
   const env = parseServerEnv(process.env);
-  const warnings = getOperationalWarnings(env);
+  const warnings = getOperationalWarningCodes(env);
   const pushState = getPushFeatureState(env);
 
   console.log('Environment validation passed.');
@@ -51,7 +55,7 @@ try {
     console.log('');
     console.log('Warnings:');
     for (const warning of warnings) {
-      console.log(`- ${warning}`);
+      console.log(`- ${getOperationalWarningMessage(warning)}`);
     }
   }
 } catch (error) {

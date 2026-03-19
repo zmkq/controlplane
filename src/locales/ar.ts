@@ -429,10 +429,35 @@ export const ar = {
     },
     "data": {
       "title": "البيانات والتصدير",
-      "description": "صدّر بيانات العمليات أو امسح المسودات المحلية.",
-      "export": "تصدير CSV",
+      "description": "تغطي النسخة الأساسية بيانات التشغيل الحالية، بينما تضيف النسخة الكاملة سجلات التدقيق والأجهزة المشتركة في التنبيهات.",
+      "export": "تصدير أساسي",
+      "fullExport": "نسخة احتياطية كاملة",
+      "coreExportDescription": "جارٍ تجهيز ملف ZIP أساسي يحتوي على أحدث جداول التشغيل.",
+      "fullExportDescription": "جارٍ تجهيز ملف ZIP كامل يتضمن سجلات التدقيق واشتراكات الأجهزة.",
       "purge": "مسح المسودات المحلية",
-      "confirm": "سيتم مسح البيانات المخزنة على هذا الجهاز �?قط."
+      "confirm": "سيتم مسح البيانات المخزنة على هذا الجهاز فقط."
+    },
+    "operations": {
+      "title": "الحالة التشغيلية",
+      "healthy": "سليم",
+      "degraded": "متدهور",
+      "environment": "البيئة",
+      "version": "الإصدار",
+      "database": "قاعدة البيانات",
+      "unavailable": "غير متاح",
+      "imageUpload": "رفع الصور",
+      "pushNotifications": "إشعارات الدفع",
+      "runtime": "مدة التشغيل",
+      "checkedAt": "آخر فحص",
+      "warnings": "تنبيهات تشغيلية",
+      "enabled": "مفعّل",
+      "partial": "جزئي",
+      "disabled": "معطّل",
+      "warning": {
+        "pushPartial": "إشعارات الدفع مهيأة جزئياً. اضبط NEXT_PUBLIC_VAPID_PUBLIC_KEY و VAPID_PUBLIC_KEY و VAPID_PRIVATE_KEY معاً.",
+        "imageUploadDisabled": "رفع الصور معطّل حتى يتم ضبط IMGBB_API_KEY.",
+        "demoLoginDisabled": "إنشاء حساب العرض المحلي معطّل حتى يتم ضبط DEMO_ADMIN_PASSWORD."
+      }
     }
   },
   "profits": {

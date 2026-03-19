@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from '@/lib/i18n';
 import type { ApplicationHealth } from '@/lib/ops-health';
+import type { OperationalWarningCode } from '@/lib/ops-status';
 import {
   DEFAULT_APP_SETTINGS,
   SUPPORTED_TIMEZONES,
@@ -188,8 +189,14 @@ export function SettingsClient({
         : t('settings.data.export', 'Export CSV snapshot'),
       {
         description: isFull
-          ? 'Preparing a full ZIP snapshot with audit logs and device subscriptions.'
-          : 'Preparing a core ZIP snapshot with the latest operational CSVs.',
+          ? t(
+              'settings.data.fullExportDescription',
+              'Preparing a full ZIP snapshot with audit logs and device subscriptions.',
+            )
+          : t(
+              'settings.data.coreExportDescription',
+              'Preparing a core ZIP snapshot with the latest operational CSVs.',
+            ),
       },
     );
     window.location.assign(`/api/settings/export?profile=${profile}`);
@@ -497,7 +504,7 @@ export function SettingsClient({
                   </div>
                   <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
                     {operationsHealth.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
+                      <li key={warning}>{getOperationalWarningLabel(warning, t)}</li>
                     ))}
                   </ul>
                 </div>
@@ -583,6 +590,29 @@ function getFeatureStateLabel(
   }
 
   return t('settings.operations.disabled', 'Disabled');
+}
+
+function getOperationalWarningLabel(
+  warning: OperationalWarningCode,
+  t: ReturnType<typeof useTranslations>['t'],
+) {
+  switch (warning) {
+    case 'pushPartial':
+      return t(
+        'settings.operations.warning.pushPartial',
+        'Push notifications are only partially configured. Set NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PUBLIC_KEY, and VAPID_PRIVATE_KEY together.',
+      );
+    case 'imageUploadDisabled':
+      return t(
+        'settings.operations.warning.imageUploadDisabled',
+        'Image uploads are disabled until IMGBB_API_KEY is set.',
+      );
+    case 'demoLoginDisabled':
+      return t(
+        'settings.operations.warning.demoLoginDisabled',
+        'Local demo login seeding is disabled until DEMO_ADMIN_PASSWORD is set.',
+      );
+  }
 }
 
 function StatusPill({

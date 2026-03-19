@@ -1,32 +1,70 @@
-const fs = require('fs');
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
 
-const content = fs.readFileSync(
-  'd:/Main Files/drispro/drisopro/src/locales/translations.ts',
-  'utf8',
-);
+const cwd = process.cwd();
 
-// Use a regex or simple parsing to extract en and ar objects.
-// Since it's a TS file with a specific structure, we can try to extract the objects.
-// A more robust way is to use a TS parser, but let's try a simple approach first.
+function extractLocaleObject(source, localeName) {
+  const prefix = `export const ${localeName} = `;
+  const start = source.indexOf(prefix);
+  const end = source.lastIndexOf('} as const;');
 
-function getObject(key, str) {
-  let start = str.indexOf(key + ': {');
-  if (start === -1) return null;
-  start += key.length + 2;
-  let count = 0;
-  let end = start;
-  for (let i = start; i < str.length; i++) {
-    if (str[i] === '{') count++;
-    if (str[i] === '}') {
-      if (count === 0) {
-        end = i + 1;
-        break;
-      }
-      count--;
-    }
+  if (start === -1 || end === -1) {
+    throw new Error(`Unable to parse ${localeName} locale source.`);
   }
-  return str.substring(start, end);
+
+  return JSON.parse(source.slice(start + prefix.length, end + 1).trim());
 }
 
-// This is a bit too complex for a scratch script without a proper parser.
-// Let's just use grep to find keys and compare.
+function flattenKeys(value, prefix = '') {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return prefix ? [prefix] : [];
+  }
+
+  return Object.entries(value).flatMap(([key, nested]) => {
+    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+    return flattenKeys(nested, nextPrefix);
+  });
+}
+
+async function readLocale(localeName) {
+  const filePath = path.join(cwd, 'src', 'locales', `${localeName}.ts`);
+  const source = await fs.readFile(filePath, 'utf8');
+  return extractLocaleObject(source, localeName);
+}
+
+function getMissingKeys(sourceKeys, comparisonKeys) {
+  const comparisonSet = new Set(comparisonKeys);
+  return sourceKeys.filter((key) => !comparisonSet.has(key));
+}
+
+async function main() {
+  const [en, ar] = await Promise.all([readLocale('en'), readLocale('ar')]);
+  const enKeys = flattenKeys(en).sort();
+  const arKeys = flattenKeys(ar).sort();
+  const missingInArabic = getMissingKeys(enKeys, arKeys);
+  const missingInEnglish = getMissingKeys(arKeys, enKeys);
+
+  if (missingInArabic.length === 0 && missingInEnglish.length === 0) {
+    console.log('Translation keys are in sync.');
+    return;
+  }
+
+  if (missingInArabic.length > 0) {
+    console.error('Missing in Arabic locale:');
+    for (const key of missingInArabic) {
+      console.error(`- ${key}`);
+    }
+  }
+
+  if (missingInEnglish.length > 0) {
+    console.error('Missing in English locale:');
+    for (const key of missingInEnglish) {
+      console.error(`- ${key}`);
+    }
+  }
+
+  process.exitCode = 1;
+}
+
+await main();
