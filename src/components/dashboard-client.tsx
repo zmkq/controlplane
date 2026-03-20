@@ -195,7 +195,7 @@ export function DashboardClient({
 
 
   return (
-    <div className="space-y-8 pb-24 h-[calc(100dvh-4rem)] overflow-y-auto snap-y snap-proximity scrollbar-hide md:h-auto md:overflow-visible md:snap-none">
+    <div className="min-w-0 space-y-8 pb-24 md:pb-12">
       {/* Command Center Header */}
       <div className="flex items-end justify-between px-2">
         <div>

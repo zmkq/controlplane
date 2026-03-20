@@ -68,7 +68,7 @@ export function BentoCard({
   return (
     <motion.div
       className={cn(
-        'group relative overflow-hidden rounded-[1.75rem] glass-widget p-5 transition-all animate-[breathe-card_8s_ease-in-out_infinite] hover:bg-white/5 sm:rounded-[2rem] sm:p-6',
+        'group relative min-w-0 overflow-hidden rounded-[1.75rem] glass-widget p-5 transition-all animate-[breathe-card_8s_ease-in-out_infinite] hover:bg-white/5 sm:rounded-[2rem] sm:p-6',
         colSpan === 2 && 'md:col-span-2',
         colSpan === 3 && 'md:col-span-3',
         colSpan === 4 && 'md:col-span-4', // Full width
