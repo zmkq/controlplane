@@ -182,13 +182,16 @@ Full local gate:
 
 ```bash
 bun run check
+bun run release:check
 ```
 
 Full release gate:
 
 ```bash
-bun run ci
+bun run release:check
 ```
+
+`bun run ci` remains available for CI usage and currently resolves to the same production-oriented validation path.
 
 ## English and Arabic Support :earth_africa:
 
