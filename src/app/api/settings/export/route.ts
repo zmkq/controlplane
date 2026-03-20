@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { toCsv } from '@/lib/csv';
 import {
-  getExportDatasetLabels,
   getExportFileName,
+  getExportManifest,
   parseExportProfile,
 } from '@/lib/settings-export';
 
@@ -84,7 +84,6 @@ export async function GET(request: Request) {
     ]);
 
     const zip = new JSZip();
-    const datasetLabels = getExportDatasetLabels(profile);
     const counts = {
       settings: settings.length,
       products: products.length,
@@ -103,17 +102,7 @@ export async function GET(request: Request) {
 
     zip.file(
       'manifest.json',
-      JSON.stringify(
-        {
-          schemaVersion: 2,
-          profile,
-          exportedAt: exportedAt.toISOString(),
-          datasets: datasetLabels,
-          counts,
-        },
-        null,
-        2,
-      ),
+      JSON.stringify(getExportManifest(exportedAt, profile, counts), null, 2),
     );
 
     zip.file(
