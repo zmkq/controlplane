@@ -111,7 +111,7 @@ export function ProductListSkeleton() {
               />
             ))}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
             {Array.from({ length: 5 }).map((_, index) => (
               <GlassSkeleton
                 key={index}

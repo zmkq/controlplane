@@ -46,7 +46,7 @@ export function ChannelPerformance({ data, className }: ChannelPerformanceProps)
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
   return (
-    <div className={cn('h-full w-full flex flex-col relative overflow-hidden', className)}>
+    <div className={cn('h-full w-full min-w-0 flex flex-col relative overflow-hidden', className)}>
        {/* Ambient Glow */}
        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full pointer-events-none" />
 
@@ -159,6 +159,9 @@ export function ChannelPerformance({ data, className }: ChannelPerformanceProps)
         </div>
       </div>
     </div>
+  );
+}
+/div>
   );
 }
 /div>
