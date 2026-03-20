@@ -83,7 +83,7 @@ export function Sidebar() {
       onMouseMove={handleMouseMove}
       className={cn(
         'group/sidebar fixed top-0 start-0 z-40 hidden h-dvh flex-col lg:flex',
-        'w-[280px] xl:w-[300px] 2xl:w-[320px]',
+        'w-[17.5rem] xl:w-[18rem] 2xl:w-[19rem]',
         'transition-all duration-700 ease-out',
         isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4',
       )}>
