@@ -66,7 +66,7 @@ export default async function RootLayout({
   return (
     <html lang={lang} data-lang={lang} dir={getDirection(lang)}>
       <body
-        className={`${inter.variable} ${tajawal.variable} ${cairo.variable} ${montserrat.variable} bg-background text-foreground`}
+        className={`${inter.variable} ${tajawal.variable} ${cairo.variable} ${montserrat.variable} overflow-x-hidden bg-background text-foreground`}
         style={bodyStyle}>
         <TranslationProvider initialLang={lang}>
           <PwaProvider />

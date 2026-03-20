@@ -63,7 +63,7 @@ export function SalesListSkeleton() {
       <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <GlassSkeleton className="h-12 w-full rounded-[1.25rem] xl:max-w-md" />
-          <div className="flex gap-2 overflow-hidden">
+          <div className="flex flex-wrap gap-2 xl:justify-end">
             {Array.from({ length: 6 }).map((_, index) => (
               <GlassSkeleton
                 key={index}

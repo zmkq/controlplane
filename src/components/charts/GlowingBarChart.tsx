@@ -57,7 +57,7 @@ export function GlowingBarChart({
   }));
 
   return (
-    <div className="h-full flex flex-col overflow-hidden relative group">
+    <div className="group relative flex h-full min-w-0 flex-col overflow-hidden">
        {/* Ambient Background Glow */}
        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 

@@ -115,7 +115,7 @@ export function ProductListSkeleton() {
             {Array.from({ length: 5 }).map((_, index) => (
               <GlassSkeleton
                 key={index}
-                className="h-10 w-full min-w-36 rounded-xl border border-white/5"
+                className="h-10 w-full rounded-xl border border-white/5"
               />
             ))}
           </div>
@@ -129,6 +129,10 @@ export function ProductListSkeleton() {
           />
         ))}
       </div>
+    </div>
+  );
+}
+</div>
     </div>
   );
 }

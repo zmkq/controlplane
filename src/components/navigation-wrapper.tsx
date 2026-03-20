@@ -26,7 +26,7 @@ export function NavigationWrapper({ children }: { children: React.ReactNode }) {
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(98,195,255,0.12),transparent_60%)] opacity-80" />
         <div className="pointer-events-none absolute right-0 top-32 h-56 w-56 rounded-full bg-primary/8 blur-[100px]" />
-        <div className="page-shell relative z-10 w-full lg:px-0 lg:pr-8 lg:pt-4 xl:pr-10 xl:pt-6">
+        <div className="page-shell relative z-10 w-full max-w-full overflow-x-hidden lg:px-0 lg:pr-8 lg:pt-4 xl:pr-10 xl:pt-6">
           {children}
         </div>
       </main>

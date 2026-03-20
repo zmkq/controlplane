@@ -118,7 +118,7 @@ export function ChannelPerformance({ data, className }: ChannelPerformanceProps)
         </div>
 
         {/* Legend / List */}
-        <div className="flex-1 w-full space-y-3 pr-1 overflow-y-auto max-h-[200px] scrollbar-hide">
+        <div className="flex-1 min-w-0 w-full max-h-[200px] space-y-3 overflow-y-auto pr-1 scrollbar-hide">
            {sortedData.map((item, i) => {
               const color = getColor(item.name);
               return (
@@ -159,5 +159,8 @@ export function ChannelPerformance({ data, className }: ChannelPerformanceProps)
         </div>
       </div>
     </div>
+  );
+}
+/div>
   );
 }
