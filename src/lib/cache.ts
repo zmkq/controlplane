@@ -1,6 +1,10 @@
 import { unstable_cache } from 'next/cache';
 import { prisma } from './prisma';
 
+function logCacheFallback(scope: string, error: unknown) {
+  console.error(`[cache] ${scope} failed, returning fallback`, error);
+}
+
 // ============================================================================
 // DASHBOARD KPIS - Cached for 60 seconds
 // ============================================================================
