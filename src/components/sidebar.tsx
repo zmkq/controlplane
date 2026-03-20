@@ -5,23 +5,22 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  ScrollText,
-  Boxes,
-  Users,
-  Settings2,
-  Receipt,
   FileText,
   Zap,
   TrendingUp,
   Clock,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from '@/lib/i18n';
 import { useOperationalMetrics } from '@/hooks/use-operational-metrics';
+import {
+  findActiveNavigationItem,
+  isNavigationItemActive,
+  primaryNavigation,
+} from '@/lib/navigation';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -37,6 +36,7 @@ export function Sidebar() {
     value === null || typeof value === 'undefined'
       ? '--'
       : formatter.format(value);
+  const activeItem = findActiveNavigationItem(pathname) ?? primaryNavigation[0];
 
   // Staggered entrance animation
   useEffect(() => {
@@ -54,54 +54,26 @@ export function Sidebar() {
     }
   }, []);
 
-  const navItems = [
+  const navItems = primaryNavigation.map((item) => ({
+    ...item,
+    label: t(item.labelKey, item.labelFallback),
+    description: t(item.descriptionKey, item.descriptionFallback),
+  }));
+  const activeLabel = t(activeItem.labelKey, activeItem.labelFallback);
+  const activeDescription = t(
+    activeItem.descriptionKey,
+    activeItem.descriptionFallback,
+  );
+  const spotlightLinks = [
     {
-      href: '/dashboard',
-      icon: LayoutDashboard,
-      label: t('sidebar.nav.dashboard', 'Dashboard'),
-      accent: '#06b6d4',
-    },
-    {
-      href: '/sales',
-      icon: ShoppingCart,
-      label: t('sidebar.nav.sales', 'Sales'),
-      accent: '#10b981',
-    },
-    {
-      href: '/products',
-      icon: Boxes,
-      label: t('sidebar.nav.products', 'Products'),
-      accent: '#8b5cf6',
-    },
-    {
-      href: '/expenses',
-      icon: Receipt,
-      label: t('sidebar.nav.expenses', 'Expenses'),
-      accent: '#f43f5e',
-    },
-    {
-      href: '/agents',
-      icon: Users,
-      label: t('sidebar.nav.agents', 'Agents'),
-      accent: '#f97316',
+      href: '/sales/new',
+      label: t('nav.cta', 'New Order'),
+      icon: Plus,
     },
     {
       href: '/reports',
-      icon: FileText,
       label: t('sidebar.nav.reports', 'Reports'),
-      accent: '#3b82f6',
-    },
-    {
-      href: '/audit-logs',
-      icon: ScrollText,
-      label: t('sidebar.nav.audit', 'Audit Logs'),
-      accent: '#64748b',
-    },
-    {
-      href: '/settings',
-      icon: Settings2,
-      label: t('sidebar.nav.settings', 'Settings'),
-      accent: '#71717a',
+      icon: FileText,
     },
   ];
 
@@ -326,8 +298,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 flex flex-col gap-0.5">
           {navItems.map((item, index) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = isNavigationItemActive(pathname, item);
             const isHovered = hoveredNav === item.href;
 
             return (
@@ -429,7 +400,42 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Coach Card */}
+        <div className="mt-4 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_28px_rgba(0,0,0,0.24)]">
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border"
+              style={{
+                borderColor: `${activeItem.accent}35`,
+                backgroundColor: `${activeItem.accent}18`,
+                color: activeItem.accent,
+              }}>
+              <activeItem.icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                {t('sidebar.spotlightTitle', 'Route spotlight')}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-foreground">
+                {activeLabel}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {activeDescription}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {spotlightLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-muted-foreground transition hover:border-white/20 hover:bg-white/10 hover:text-foreground">
+                <item.icon className="h-3.5 w-3.5 text-primary" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* CSS for shimmer animation */}

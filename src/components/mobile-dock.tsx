@@ -2,34 +2,17 @@
 
 import { motion } from 'framer-motion';
 
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import {
-  CircleDot,
-  LayoutDashboard,
-  ShoppingCart,
-  Plus,
-  Boxes,
-  Settings2,
-} from 'lucide-react';
+import { CircleDot, Plus } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n';
-
-type DockLink = {
-  href: string;
-  labelKey?: string;
-  icon: ComponentType<{ className?: string; strokeWidth?: number | string }>;
-  srLabelKey?: string;
-};
-
-const dockLinks: DockLink[] = [
-  { href: '/dashboard', labelKey: 'dock.overview', icon: LayoutDashboard },
-  { href: '/sales', labelKey: 'dock.sales', icon: ShoppingCart },
-  { href: '/sales/new', srLabelKey: 'dock.addSr', icon: Plus }, // Middle item
-  { href: '/products', labelKey: 'dock.products', icon: Boxes },
-  { href: '/settings', labelKey: 'dock.settings', icon: Settings2 },
-];
+import {
+  findActiveNavigationItem,
+  isNavigationItemActive,
+  mobileDockNavigation,
+} from '@/lib/navigation';
 
 // Haptic feedback helper
 function triggerHapticFeedback() {
@@ -41,30 +24,17 @@ function triggerHapticFeedback() {
 export function MobileDock() {
   const pathname = usePathname();
   const { t } = useTranslations();
+  const activeItem =
+    findActiveNavigationItem(pathname, mobileDockNavigation) ??
+    mobileDockNavigation[0];
   const activeLabel = useMemo(() => {
-    const activeItem = dockLinks.find((item) => {
-      if (item.href === '/sales/new') {
-        return pathname === item.href;
-      }
-
-      if (item.href === '/sales') {
-        return (
-          pathname === item.href ||
-          (pathname.startsWith('/sales/') && !pathname.startsWith('/sales/new'))
-        );
-      }
-
-      return pathname === item.href || pathname.startsWith(`${item.href}/`);
-    });
-
-    if (!activeItem) {
-      return t('sidebar.nav.dashboard', 'Dashboard');
-    }
-
-    return activeItem.labelKey
-      ? t(activeItem.labelKey, activeItem.labelKey)
-      : t(activeItem.srLabelKey ?? 'dock.addSr', 'New Order');
-  }, [pathname, t]);
+    return t(activeItem.labelKey, activeItem.labelFallback);
+  }, [activeItem, t]);
+  const activeDescription = t(
+    activeItem.descriptionKey,
+    activeItem.descriptionFallback,
+  );
+  const ActiveIcon = activeItem.icon;
 
   return (
     <nav
@@ -72,29 +42,39 @@ export function MobileDock() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[calc(1rem+var(--safe-bottom))] lg:hidden">
       <div
         className="pointer-events-auto relative w-full max-w-[460px] rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(8,10,18,0.96)_0%,rgba(3,4,10,0.98)_100%)] px-2 pb-2 pt-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur-3xl">
-        <div className="absolute inset-x-12 -top-5 flex justify-center">
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/65 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground shadow-[0_8px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-            <CircleDot className="h-3.5 w-3.5 text-primary" />
-            <span className="max-w-[11rem] truncate">{activeLabel}</span>
+        <div className="absolute inset-x-5 -top-7 flex justify-center">
+          <div className="flex w-full max-w-[17rem] items-center gap-3 rounded-[1.3rem] border border-white/10 bg-black/70 px-3 py-2 shadow-[0_8px_25px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border"
+              style={{
+                borderColor: `${activeItem.accent}35`,
+                backgroundColor: `${activeItem.accent}18`,
+                color: activeItem.accent,
+              }}>
+              <ActiveIcon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                <CircleDot className="h-3 w-3 text-primary" />
+                <span>{t('dock.activeSurface', 'Active surface')}</span>
+              </div>
+              <p className="truncate text-xs font-semibold text-foreground">
+                {activeLabel}
+              </p>
+              <p className="hidden truncate text-[10px] text-muted-foreground min-[390px]:block">
+                {activeDescription}
+              </p>
+            </div>
           </div>
         </div>
         <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         <div className="absolute inset-x-6 bottom-2 h-px bg-gradient-to-r from-transparent via-primary/12 to-transparent" />
-        <div className="relative flex h-[4.5rem] items-end justify-between">
+        <div className="relative flex h-[4.75rem] items-end justify-between">
 
-          {dockLinks.map((item) => {
+          {mobileDockNavigation.map((item) => {
             const isAction = item.href === '/sales/new';
-            const isSalesRoute = item.href === '/sales';
-            const isActive = isAction
-              ? pathname === item.href
-              : isSalesRoute
-                ? pathname === item.href ||
-                  (pathname.startsWith('/sales/') &&
-                    !pathname.startsWith('/sales/new'))
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const label = item.labelKey
-              ? t(item.labelKey, item.labelKey)
-              : t(item.srLabelKey ?? 'dock.addSr', 'New Order');
+            const isActive = isNavigationItemActive(pathname, item);
+            const label = t(item.labelKey, item.labelFallback);
 
             if (isAction) {
               return (
@@ -118,6 +98,9 @@ export function MobileDock() {
                       />
                     </Link>
                   </motion.div>
+                  <span className="mt-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary/90">
+                    {label}
+                  </span>
                 </div>
               );
             }

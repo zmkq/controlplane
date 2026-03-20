@@ -2,35 +2,41 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { RadioTower, Settings2 } from 'lucide-react';
+import { FileText, Plus, RadioTower, Settings2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { NotificationsHubButton } from '@/components/notifications/notifications-hub-button';
 import { APP_LOGO_PATH, APP_NAME } from '@/lib/app-config';
 import { useTranslations } from '@/lib/i18n';
+import { findActiveNavigationItem } from '@/lib/navigation';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const pathname = usePathname();
   const { t, lang } = useTranslations();
   const initials = lang === 'ar' ? 'AR' : 'CP';
-  const activeSection =
-    pathname === '/dashboard'
-      ? t('sidebar.nav.dashboard', 'Dashboard')
-      : pathname.startsWith('/sales')
-        ? t('sidebar.nav.sales', 'Sales')
-        : pathname.startsWith('/products')
-          ? t('sidebar.nav.products', 'Products')
-          : pathname.startsWith('/expenses')
-            ? t('sidebar.nav.expenses', 'Expenses')
-            : pathname.startsWith('/agents')
-              ? t('sidebar.nav.agents', 'Agents')
-              : pathname.startsWith('/reports')
-                ? t('sidebar.nav.reports', 'Reports')
-                : pathname.startsWith('/audit-logs')
-                  ? t('sidebar.nav.audit', 'Audit Logs')
-                  : pathname.startsWith('/notifications')
-                    ? t('notifications.title', 'Notifications')
-                    : t('sidebar.nav.settings', 'Settings');
+  const activeItem = findActiveNavigationItem(pathname) ?? {
+    href: '/settings',
+    labelKey: pathname?.startsWith('/notifications')
+      ? 'notifications.title'
+      : 'sidebar.nav.settings',
+    labelFallback: pathname?.startsWith('/notifications')
+      ? 'Notifications'
+      : 'Settings',
+    descriptionKey: pathname?.startsWith('/notifications')
+      ? 'nav.notificationsDescription'
+      : 'nav.settingsDescription',
+    descriptionFallback: pathname?.startsWith('/notifications')
+      ? 'Review incoming alerts, system prompts, and workflow interruptions in one place.'
+      : 'Adjust system defaults, exports, and workspace preferences without leaving the shell.',
+    accent: pathname?.startsWith('/notifications') ? '#dbec0a' : '#71717a',
+    icon: pathname?.startsWith('/notifications') ? RadioTower : Settings2,
+  };
+  const activeSection = t(activeItem.labelKey, activeItem.labelFallback);
+  const activeDescription = t(
+    activeItem.descriptionKey,
+    activeItem.descriptionFallback,
+  );
 
   return (
     <nav
@@ -64,22 +70,51 @@ export function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden min-[480px]:flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <RadioTower className="h-3.5 w-3.5" />
+          <div className="hidden md:flex min-w-0 items-center gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-3 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border"
+              style={{
+                borderColor: `${activeItem.accent}35`,
+                backgroundColor: `${activeItem.accent}18`,
+                color: activeItem.accent,
+              }}>
+              <activeItem.icon className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="min-w-0 max-w-[18rem]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground/80">
                 {t('nav.status', 'Live')}
               </p>
               <p className="truncate text-xs font-semibold text-foreground">
                 {activeSection}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {activeDescription}
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="hidden xl:flex items-center gap-2 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-1">
+            <Link
+              href="/sales/new"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(219,236,10,0.35)]">
+              <Plus className="h-3.5 w-3.5" />
+              {t('nav.cta', 'New Order')}
+            </Link>
+            <Link
+              href="/reports"
+              className={cn(
+                'inline-flex h-10 items-center gap-2 rounded-xl px-3 text-xs font-semibold transition',
+                pathname?.startsWith('/reports')
+                  ? 'bg-white/10 text-foreground'
+                  : 'text-muted-foreground hover:bg-white/6 hover:text-foreground',
+              )}>
+              <FileText className="h-3.5 w-3.5" />
+              {t('sidebar.nav.reports', 'Reports')}
+            </Link>
+          </div>
+
           <div className="min-[480px]:hidden">
             <LanguageSwitcher compact />
           </div>
