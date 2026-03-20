@@ -10,16 +10,12 @@ type AgentOption = Option & { leadTime: number };
 type NewSalePageClientProps = {
   products: ProductOption[];
   agents: AgentOption[];
-  limitedInventory: number;
-  onDemandQueue: number;
   initialData?: { [key: string]: string | string[] | undefined };
 };
 
 export function NewSalePageClient({
   products,
   agents,
-  limitedInventory,
-  onDemandQueue,
   initialData,
 }: NewSalePageClientProps) {
   const { t } = useTranslations();
@@ -41,8 +37,6 @@ export function NewSalePageClient({
       <NewSaleForm
         products={products}
         agents={agents}
-        limitedInventory={limitedInventory}
-        onDemandQueue={onDemandQueue}
         initialData={initialData}
       />
     </div>

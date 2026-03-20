@@ -43,7 +43,6 @@ import {
   MessageCircle,
   Facebook,
   Store,
-  Trash2,
   Plus,
 } from 'lucide-react';
 
@@ -82,26 +81,6 @@ const channelOptions: ChannelOption[] = [
   { value: 'facebook', label: 'Facebook', icon: Facebook },
 
   { value: 'offline', label: 'Retail / pop-up', icon: Store },
-];
-
-const channelHints: Record<string, string> = {
-  instagram: 'Stories & drop pools',
-
-  whatsapp: 'Direct chat',
-
-  facebook: 'Page inbox',
-
-  offline: 'Events / walk-ins',
-};
-
-const stepConfig = [
-  { label: 'Channel & customer', description: 'Where did the order start?' },
-
-  { label: 'Items', description: 'Build the stack' },
-
-  { label: 'Fulfillment', description: 'Limited vs on-demand' },
-
-  { label: 'Review & confirm', description: 'Payment & alerts' },
 ];
 
 type Option = { value: string; label: string };
@@ -198,19 +177,11 @@ export default function NewSaleForm({
   products,
 
   agents,
-
-  limitedInventory,
-
-  onDemandQueue,
   initialData,
 }: {
   products: ProductOption[];
 
   agents: AgentOption[];
-
-  limitedInventory: number;
-
-  onDemandQueue: number;
   initialData?: { [key: string]: string | string[] | undefined };
 }) {
   const { t } = useTranslations();
@@ -641,13 +612,6 @@ export default function NewSaleForm({
     Boolean(city.trim()) ||
     Boolean(pickupLocation.trim()) ||
     Boolean(notes.trim());
-
-  const deliveryCopy =
-    fulfillmentType === 'limited'
-      ? isExpedited
-        ? t('newSale.fulfillment.expressRider', 'Express rider (<3h)')
-        : deliveryWindow
-      : `${deliveryWindow} ${t('common.time.via', 'via')} ${selectedAgent?.label ?? t('newSale.fulfillment.partner', 'partner')}`;
 
   useEffect(() => {
     if (draftReady) {

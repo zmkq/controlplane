@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
-import { QrCode, Smartphone, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { QrCode, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -19,12 +19,11 @@ interface DeviceQRScannerProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
-  className?: string;
 }
 
 type ScanState = 'idle' | 'selecting' | 'scanning' | 'completed' | 'error' | 'timeout';
 
-export function DeviceQRScanner({ value, onChange, error, className }: DeviceQRScannerProps) {
+export function DeviceQRScanner({ value, onChange, error }: DeviceQRScannerProps) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [scanState, setScanState] = useState<ScanState>('idle');

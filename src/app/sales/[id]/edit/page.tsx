@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { EditOrderForm } from './edit-form';
 
 export default async function EditOrderPage({

@@ -1,18 +1,15 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Download,
   Calendar,
   Settings,
-  Printer,
   Search,
   Plus,
   Trash2,
-  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import html2canvas from 'html2canvas';
@@ -79,7 +76,6 @@ export function ReportsClient({
   expensesData,
 }: ReportsClientProps) {
   const { t, lang } = useTranslations();
-  const router = useRouter();
   const [period, setPeriod] = useState('all');
   const [includeInventory, setIncludeInventory] = useState(true);
   const [includeSales, setIncludeSales] = useState(true);
@@ -287,7 +283,7 @@ export function ReportsClient({
         backgroundColor: '#000000', // Dark background
         logging: false,
         windowWidth: 2480, // A4 width at 300 DPI approx
-        onclone: (clonedDoc) => {
+        onclone: () => {
           // You can manipulate the cloned document here if needed
           // e.g. make sure fonts are loaded
         },
@@ -1170,7 +1166,7 @@ export function ReportsClient({
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredInventory.map((item, i) => (
+                      {filteredInventory.map((item) => (
                         <tr
                           key={item.id}
                           style={{
@@ -1349,7 +1345,7 @@ export function ReportsClient({
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSales.map((sale, i) => {
+                      {filteredSales.map((sale) => {
                         const calculatedProfit = includeExpenses
                           ? sale.profit
                           : sale.revenue - sale.cogs;
