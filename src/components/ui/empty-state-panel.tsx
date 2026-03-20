@@ -6,6 +6,7 @@ type EmptyStatePanelProps = {
   eyebrow?: string;
   title: string;
   description: string;
+  highlights?: string[];
   className?: string;
   children?: React.ReactNode;
 };
@@ -15,6 +16,7 @@ export function EmptyStatePanel({
   eyebrow,
   title,
   description,
+  highlights,
   className,
   children,
 }: EmptyStatePanelProps) {
@@ -45,6 +47,17 @@ export function EmptyStatePanel({
         <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
           {description}
         </p>
+        {highlights && highlights.length > 0 && (
+          <div className="mt-5 flex max-w-xl flex-wrap justify-center gap-2">
+            {highlights.map((highlight) => (
+              <span
+                key={highlight}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-foreground">
+                {highlight}
+              </span>
+            ))}
+          </div>
+        )}
         {children && (
           <div className="mt-7 flex flex-wrap justify-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/[0.03] px-4 py-4">
             {children}

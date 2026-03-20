@@ -343,6 +343,13 @@ export function SalesListClient({
       label: t('sales.filters.fulfillment.onDemand', 'On-Demand'),
     },
   ];
+  const activeFilterLabels = [
+    searchQuery && `Search: ${searchQuery}`,
+    channelFilter !== 'all' &&
+      `Channel: ${channelFilters.find((filter) => filter.value === channelFilter)?.label ?? channelFilter}`,
+    fulfillmentFilter !== 'all' &&
+      `Fulfillment: ${fulfillmentFilters.find((filter) => filter.value === fulfillmentFilter)?.label ?? fulfillmentFilter}`,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="space-y-8">
@@ -470,7 +477,7 @@ export function SalesListClient({
               </span>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
               {hasFilters && (
                 <Button asChild variant="outline">
                   <Link href="/sales">
@@ -480,13 +487,17 @@ export function SalesListClient({
                 </Button>
               )}
 
-              <label className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+              <label className="flex min-h-11 items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={toggleSelectAll}
                   className="border-white/20 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 />
-                <span>Select all visible orders</span>
+                <span className="leading-5">
+                  {allSelected
+                    ? 'All visible orders selected'
+                    : 'Select all visible orders'}
+                </span>
               </label>
             </div>
           </div>
@@ -556,6 +567,18 @@ export function SalesListClient({
               </div>
             </div>
           </div>
+
+          {hasFilters && (
+            <div className="flex flex-wrap gap-2 rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-3">
+              {activeFilterLabels.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -579,6 +602,14 @@ export function SalesListClient({
                     'sales.emptyHint',
                     'Start with a new order to populate the live ledger, print queue, and delivery workflow.',
                   )
+            }
+            highlights={
+              hasFilters
+                ? activeFilterLabels
+                : [
+                    t('sales.emptyEyebrow', 'Order queue'),
+                    t('nav.cta', 'New Order'),
+                  ]
             }>
             {hasFilters && (
               <Button asChild variant="outline">

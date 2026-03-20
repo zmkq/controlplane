@@ -274,6 +274,16 @@ export function ProductsClient({
   const activeSupplierName =
     suppliers.find((supplier) => supplier.id === currentSupplier)?.name ??
     currentSupplier;
+  const activeFilterLabels = [
+    currentQuery && `Search: ${currentQuery}`,
+    currentType && `Type: ${currentType.replaceAll('_', ' ')}`,
+    currentSupplier && `Supplier: ${activeSupplierName}`,
+    currentFulfillmentMode &&
+      `Fulfillment: ${currentFulfillmentMode === 'on-demand' ? 'On-Demand' : 'Limited Stock'}`,
+    currentStatus &&
+      `Status: ${currentStatus === 'inactive' ? 'Inactive' : 'Active'}`,
+    currentStock && `Stock: ${currentStock.replaceAll('-', ' ')}`,
+  ].filter(Boolean) as string[];
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -1012,8 +1022,8 @@ export function ProductsClient({
 
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-[calc(6.5rem+var(--safe-bottom))] left-1/2 z-50 -translate-x-1/2 transform md:bottom-6">
-          <div className="flex items-center gap-4 rounded-full border border-white/10 bg-black/80 px-6 py-3 shadow-2xl backdrop-blur-xl">
+        <div className="fixed bottom-[calc(6.5rem+var(--safe-bottom))] left-4 right-4 z-50 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 md:transform">
+          <div className="flex flex-wrap items-center justify-center gap-3 rounded-[1.75rem] border border-white/10 bg-black/80 px-4 py-3 shadow-2xl backdrop-blur-xl md:flex-nowrap md:rounded-full md:px-6">
             <span className="text-sm font-medium text-white">
               {selectedIds.length} selected
             </span>
@@ -1072,8 +1082,8 @@ export function ProductsClient({
             </p>
           </div>
 
-          <div className="relative mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5 xl:flex-1">
+          <div className="relative mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <select
                 value={currentType}
                 onChange={(e) => updateFilter('type', e.target.value)}
@@ -1154,7 +1164,9 @@ export function ProductsClient({
                   if (isSelectionMode) setSelectedIds([]); // Clear selection when exiting
                 }}
                 className="border-white/10 bg-white/5 hover:bg-white/10">
-                {isSelectionMode ? 'Cancel Selection' : 'Select'}
+                {isSelectionMode
+                  ? `Cancel Selection${selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}`
+                  : 'Select Products'}
               </Button>
 
               <Button onClick={() => openSheet(null)} className="brand-glow">
@@ -1166,39 +1178,18 @@ export function ProductsClient({
 
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-2 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-3">
-              {currentQuery && (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  Search: {currentQuery}
+              {activeFilterLabels.map((label) => (
+                <span
+                  key={label}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium',
+                    label.startsWith('Search:')
+                      ? 'border-primary/20 bg-primary/10 text-primary'
+                      : 'border-white/10 bg-white/5 text-foreground',
+                  )}>
+                  {label}
                 </span>
-              )}
-              {currentType && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                  Type: {currentType.replaceAll('_', ' ')}
-                </span>
-              )}
-              {currentSupplier && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                  Supplier: {activeSupplierName}
-                </span>
-              )}
-              {currentFulfillmentMode && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                  Fulfillment:{' '}
-                  {currentFulfillmentMode === 'on-demand'
-                    ? 'On-Demand'
-                    : 'Limited Stock'}
-                </span>
-              )}
-              {currentStatus && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                  Status: {currentStatus === 'inactive' ? 'Inactive' : 'Active'}
-                </span>
-              )}
-              {currentStock && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-foreground">
-                  Stock: {currentStock.replaceAll('-', ' ')}
-                </span>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -1289,6 +1280,11 @@ export function ProductsClient({
                 hasActiveFilters
                   ? 'Clear one or more filters to widen the list, or add a new SKU directly from here.'
                   : 'Start with your first SKU to populate inventory cards, low-stock monitoring, and quick edit actions.'
+              }
+              highlights={
+                hasActiveFilters
+                  ? activeFilterLabels
+                  : ['Grouped inventory view', 'Quick add enabled']
               }>
               {hasActiveFilters && (
                 <Button variant="outline" onClick={resetFilters}>
