@@ -161,9 +161,3 @@ export function ChannelPerformance({ data, className }: ChannelPerformanceProps)
     </div>
   );
 }
-/div>
-  );
-}
-/div>
-  );
-}

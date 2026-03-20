@@ -132,7 +132,3 @@ export function ProductListSkeleton() {
     </div>
   );
 }
-</div>
-    </div>
-  );
-}
