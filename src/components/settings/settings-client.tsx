@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppSettings } from '@prisma/client';
 import {
@@ -26,6 +26,7 @@ import {
   SUPPORTED_TIMEZONES,
   normalizeBrandColor,
 } from '@/lib/settings-config';
+import { clearLocalDraftStorage } from '@/lib/client-storage';
 import { getDirection, LOCALE_COOKIE_NAME } from '@/lib/locale';
 import { toast } from '@/lib/toast';
 
@@ -81,10 +82,12 @@ export function SettingsClient({
   initialSettings: AppSettings;
   operationsHealth: ApplicationHealth;
 }) {
-  const { t } = useTranslations();
+  const { t, lang } = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [settings, setSettings] = useState(() => toFormState(initialSettings));
+  const [health, setHealth] = useState(operationsHealth);
+  const [isRefreshingHealth, setIsRefreshingHealth] = useState(false);
   const [timezoneQuery, setTimezoneQuery] = useState(
     initialSettings.timezone ?? DEFAULT_APP_SETTINGS.timezone,
   );
@@ -97,8 +100,17 @@ export function SettingsClient({
     [initialSettings],
   );
 
+  useEffect(() => {
+    setHealth(operationsHealth);
+  }, [operationsHealth]);
+
   const normalizedColor = normalizeBrandColor(colorInput);
   const hasValidTimezone = SUPPORTED_TIMEZONES.includes(timezoneQuery);
+  const checkedAtLabel = formatCheckedAt(
+    health.checkedAt,
+    lang,
+    settings.timezone,
+  );
   const isDirty =
     settings.language !== initialForm.language ||
     settings.phoneFormat !== initialForm.phoneFormat ||
@@ -211,8 +223,48 @@ export function SettingsClient({
         ),
       )
     ) {
-      localStorage.clear();
-      toast.success(t('settings.data.purge', 'Purge local drafts'));
+      const removedKeys = clearLocalDraftStorage(localStorage);
+
+      if (removedKeys.length === 0) {
+        toast.warning(t('settings.data.purge', 'Purge local drafts'), {
+          description: 'No local drafts were stored on this device.',
+        });
+        return;
+      }
+
+      toast.success(t('settings.data.purge', 'Purge local drafts'), {
+        description: `${removedKeys.length} cached draft${removedKeys.length === 1 ? '' : 's'} removed.`,
+      });
+    }
+  };
+
+  const refreshOperationalStatus = async () => {
+    setIsRefreshingHealth(true);
+
+    try {
+      const response = await fetch('/api/health', {
+        cache: 'no-store',
+      });
+      const nextHealth = (await response.json()) as ApplicationHealth;
+
+      setHealth(nextHealth);
+
+      if (response.ok) {
+        toast.success(t('settings.operations.title', 'Operational Status'), {
+          description: 'Status refreshed successfully.',
+        });
+      } else {
+        toast.warning(t('settings.operations.degraded', 'Degraded'), {
+          description: 'The latest status check reported one or more issues.',
+        });
+      }
+    } catch (error) {
+      console.error('[settings] Failed to refresh operational status:', error);
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Unable to refresh operational status right now.',
+      });
+    } finally {
+      setIsRefreshingHealth(false);
     }
   };
 
@@ -221,32 +273,32 @@ export function SettingsClient({
       key: 'database',
       label: t('settings.operations.database', 'Database'),
       value:
-        operationsHealth.database.status === 'ok'
-          ? `${operationsHealth.database.latencyMs ?? 0} ms`
+        health.database.status === 'ok'
+          ? `${health.database.latencyMs ?? 0} ms`
           : t('settings.operations.unavailable', 'Unavailable'),
-      state: operationsHealth.database.status,
+      state: health.database.status,
       icon: Database,
     },
     {
       key: 'imageUpload',
       label: t('settings.operations.imageUpload', 'Image uploads'),
       value: getFeatureStateLabel(
-        operationsHealth.features.imageUpload,
+        health.features.imageUpload,
         t,
       ),
       state:
-        operationsHealth.features.imageUpload === 'enabled' ? 'ok' : 'error',
+        health.features.imageUpload === 'enabled' ? 'ok' : 'error',
       icon: WandSparkles,
     },
     {
       key: 'push',
       label: t('settings.operations.pushNotifications', 'Push notifications'),
       value: getFeatureStateLabel(
-        operationsHealth.features.pushNotifications,
+        health.features.pushNotifications,
         t,
       ),
       state:
-        operationsHealth.features.pushNotifications === 'enabled' ? 'ok' : 'error',
+        health.features.pushNotifications === 'enabled' ? 'ok' : 'error',
       icon: Clock3,
     },
   ] as const;
@@ -445,25 +497,39 @@ export function SettingsClient({
         </section>
 
         <section className="space-y-4">
-          <h2 className="border-b border-border/50 pb-2 text-lg font-semibold">
-            {t('settings.operations.title', 'Operational Status')}
-          </h2>
+          <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <h2 className="text-lg font-semibold">
+              {t('settings.operations.title', 'Operational Status')}
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshOperationalStatus}
+              disabled={isRefreshingHealth}>
+              {isRefreshingHealth ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              {t('common.buttons.refresh', 'Refresh')}
+            </Button>
+          </div>
           <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div className="rounded-2xl border border-border/50 bg-muted/20 p-4">
               <div className="flex flex-wrap items-center gap-3">
                 <StatusPill
-                  state={operationsHealth.status === 'ok' ? 'ok' : 'error'}
+                  state={health.status === 'ok' ? 'ok' : 'error'}
                   label={
-                    operationsHealth.status === 'ok'
+                    health.status === 'ok'
                       ? t('settings.operations.healthy', 'Healthy')
                       : t('settings.operations.degraded', 'Degraded')
                   }
                 />
                 <span className="text-sm text-muted-foreground">
-                  {t('settings.operations.environment', 'Environment')}: {operationsHealth.environment}
+                  {t('settings.operations.environment', 'Environment')}: {health.environment}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {t('settings.operations.version', 'Version')}: v{operationsHealth.version}
+                  {t('settings.operations.version', 'Version')}: v{health.version}
                 </span>
               </div>
 
@@ -491,19 +557,19 @@ export function SettingsClient({
                 <span>{t('settings.operations.runtime', 'Runtime')}</span>
               </div>
               <p className="mt-2 text-2xl font-semibold">
-                {formatDuration(operationsHealth.uptimeSeconds)}
+                {formatDuration(health.uptimeSeconds)}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {t('settings.operations.checkedAt', 'Last checked')}: {new Date(operationsHealth.checkedAt).toLocaleString()}
+                {t('settings.operations.checkedAt', 'Last checked')}: {checkedAtLabel}
               </p>
-              {operationsHealth.warnings.length > 0 && (
+              {health.warnings.length > 0 && (
                 <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                     <AlertTriangle className="h-4 w-4" />
                     {t('settings.operations.warnings', 'Operational warnings')}
                   </div>
                   <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-                    {operationsHealth.warnings.map((warning) => (
+                    {health.warnings.map((warning) => (
                       <li key={warning}>{getOperationalWarningLabel(warning, t)}</li>
                     ))}
                   </ul>
@@ -575,6 +641,23 @@ function formatDuration(totalSeconds: number) {
   }
 
   return `${hours}h ${minutes}m`;
+}
+
+function formatCheckedAt(
+  checkedAt: string,
+  language: 'en' | 'ar',
+  timezone: string,
+) {
+  const locale = language === 'ar' ? 'ar-JO' : 'en-US';
+  const timeZone = SUPPORTED_TIMEZONES.includes(timezone)
+    ? timezone
+    : DEFAULT_APP_SETTINGS.timezone;
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone,
+  }).format(new Date(checkedAt));
 }
 
 function getFeatureStateLabel(
