@@ -32,6 +32,12 @@ describe('clampNotificationLimit', () => {
     expect(clampNotificationLimit('40')).toBe(40);
     expect(clampNotificationLimit(null)).toBe(25);
   });
+
+  it('falls back when the query param is blank or whitespace-only', () => {
+    expect(clampNotificationLimit('')).toBe(25);
+    expect(clampNotificationLimit('   ')).toBe(25);
+    expect(clampNotificationLimit('   ', 10)).toBe(10);
+  });
 });
 
 describe('markNotificationsRead', () => {

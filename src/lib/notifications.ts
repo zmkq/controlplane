@@ -29,7 +29,12 @@ export function clampNotificationLimit(value: string | null, fallback = 25) {
     return fallback;
   }
 
-  const parsed = Number(value);
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return fallback;
+  }
+
+  const parsed = Number(normalized);
 
   if (!Number.isFinite(parsed)) {
     return fallback;

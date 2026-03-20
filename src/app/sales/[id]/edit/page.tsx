@@ -2,6 +2,13 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { EditOrderForm } from './edit-form';
 
+type ShippingMeta = {
+  contactNumber?: string;
+  address?: string;
+  deliveryFee?: number;
+  notes?: string;
+};
+
 export default async function EditOrderPage({
   params,
 }: {
@@ -48,6 +55,11 @@ export default async function EditOrderPage({
     notFound();
   }
 
+  const saleForForm = {
+    ...sale,
+    shippingAddress: normalizeShippingMeta(sale.shippingAddress),
+  };
+
   // Get all products for adding new lines
   const products = await prisma.product.findMany({
     where: { active: true },
@@ -67,7 +79,34 @@ export default async function EditOrderPage({
 
   return (
     <div className="min-h-screen px-4 pb-24 pt-6 sm:px-6 lg:px-10">
-      <EditOrderForm sale={sale} products={products} />
+      <EditOrderForm sale={saleForForm} products={products} />
     </div>
   );
+}
+
+function normalizeShippingMeta(value: unknown): ShippingMeta | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const shipping = value as Record<string, unknown>;
+  const normalized: ShippingMeta = {};
+
+  if (typeof shipping.contactNumber === 'string') {
+    normalized.contactNumber = shipping.contactNumber;
+  }
+
+  if (typeof shipping.address === 'string') {
+    normalized.address = shipping.address;
+  }
+
+  if (typeof shipping.deliveryFee === 'number') {
+    normalized.deliveryFee = shipping.deliveryFee;
+  }
+
+  if (typeof shipping.notes === 'string') {
+    normalized.notes = shipping.notes;
+  }
+
+  return normalized;
 }
