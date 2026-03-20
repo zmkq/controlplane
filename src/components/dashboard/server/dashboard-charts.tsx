@@ -74,7 +74,11 @@ export async function GlobalProductMomentum() {
   const productPerformanceData = await getCachedProductPerformance();
   const t = await getServerTranslations();
 
-  const productMomentumData = productPerformanceData.map(item => ({
+  const safeProductPerformanceData = Array.isArray(productPerformanceData)
+    ? productPerformanceData
+    : [];
+
+  const productMomentumData = safeProductPerformanceData.map(item => ({
     label: item.name,
     value: item.value,
   }));

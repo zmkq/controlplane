@@ -242,29 +242,34 @@ export const getCachedGrowthMetrics = unstable_cache(
 // ============================================================================
 
 async function fetchProductPerformance() {
-  const productSales = await prisma.saleOrderLine.groupBy({
-    by: ['productId'],
-    where: {
-      saleOrder: {
-        status: { notIn: ['CANCELED', 'RETURNED', 'DRAFT'] },
+  try {
+    const productSales = await prisma.saleOrderLine.groupBy({
+      by: ['productId'],
+      where: {
+        saleOrder: {
+          status: { notIn: ['CANCELED', 'RETURNED', 'DRAFT'] },
+        },
       },
-    },
-    _sum: { quantity: true },
-    orderBy: { _sum: { quantity: 'desc' } },
-    take: 5,
-  });
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 5,
+    });
 
-  const productIds = productSales.map((item) => item.productId);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true },
-  });
+    const productIds = productSales.map((item) => item.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true },
+    });
 
-  const productMap = new Map(products.map((p) => [p.id, p.name]));
-  return productSales.map((item) => ({
-    name: productMap.get(item.productId) || 'Unknown Product',
-    value: item._sum.quantity || 0,
-  }));
+    const productMap = new Map(products.map((p) => [p.id, p.name]));
+    return productSales.map((item) => ({
+      name: productMap.get(item.productId) || 'Unknown Product',
+      value: item._sum.quantity || 0,
+    }));
+  } catch (error) {
+    logCacheFallback('fetchProductPerformance', error);
+    return [];
+  }
 }
 
 export const getCachedProductPerformance = unstable_cache(
