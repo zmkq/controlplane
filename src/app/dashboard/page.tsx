@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { Boxes, FileText, Plus } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Boxes,
+  FileText,
+  Plus,
+  ShoppingCart,
+  Users,
+} from 'lucide-react';
 import { BentoCard, BentoGrid } from '@/components/dashboard/bento-grid';
 import { LiveRadarWrapper } from '@/components/dashboard/live-radar-wrapper';
 import {
@@ -51,10 +58,40 @@ export default async function DashboardPage() {
       icon: FileText,
     },
   ];
+  const focusTracks = [
+    {
+      href: '/sales',
+      title: t('sidebar.nav.sales', 'Sales'),
+      description: t(
+        'dashboard.focusTracks.sales',
+        'Watch channel flow, pending deliveries, and fulfillment load in real time.',
+      ),
+      icon: ShoppingCart,
+    },
+    {
+      href: '/products',
+      title: t('sidebar.nav.products', 'Products'),
+      description: t(
+        'dashboard.focusTracks.products',
+        'Stay ahead of low-stock pressure and catalog drift before it slows execution.',
+      ),
+      icon: Boxes,
+    },
+    {
+      href: '/agents',
+      title: t('sidebar.nav.agents', 'Agents'),
+      description: t(
+        'dashboard.focusTracks.agents',
+        'Keep partner coverage visible when on-demand orders start stacking.',
+      ),
+      icon: Users,
+    },
+  ];
 
   return (
     <div className="space-y-6 pb-24 sm:space-y-8 md:pb-10">
       <section className="glass-panel relative overflow-hidden rounded-[2rem] border border-white/5 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="absolute -left-16 top-10 h-36 w-36 rounded-full bg-primary/10 blur-[110px]" />
         <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(98,195,255,0.16),transparent_58%)] lg:block" />
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl space-y-4">
@@ -82,6 +119,28 @@ export default async function DashboardPage() {
                   'Stay on top of orders, stock pressure, and partner activity from one operational surface.',
                 )}
               </p>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {focusTracks.map((track) => (
+                  <Link
+                    key={track.href}
+                    href={track.href}
+                    className="group rounded-[1.5rem] border border-white/10 bg-black/20 p-4 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-primary">
+                        <track.icon className="h-4 w-4" />
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-foreground">
+                      {track.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {track.description}
+                    </p>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
