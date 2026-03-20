@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getImgBBThumbnail } from '@/lib/imgbb';
+import { toast } from '@/lib/toast';
 import {
   addOrderLine,
   updateOrderLine,
@@ -20,6 +21,21 @@ import {
   updateOrderHeader,
 } from '../edit-actions';
 import { Trash2, Plus, Save, X, DollarSign, Package, TrendingUp } from 'lucide-react';
+
+type OrderExpenseCategory =
+  | 'SHAKER'
+  | 'PACKAGING'
+  | 'HANDLING'
+  | 'GIFT_WRAP'
+  | 'RUSH_FEE'
+  | 'MISC';
+
+type ShippingMeta = {
+  contactNumber?: string;
+  address?: string;
+  deliveryFee?: number;
+  notes?: string;
+};
 
 type Product = {
   id: string;
@@ -59,7 +75,7 @@ type Sale = {
   total: number;
   customCostOverride: number | null;
   customProfitOverride: number | null;
-  shippingAddress: any;
+  shippingAddress: unknown;
   customer: {
     name: string;
     phone: string;
@@ -114,7 +130,7 @@ export function EditOrderForm({ sale, products }: Props) {
   const [customProfit, setCustomProfit] = useState<number | null>(sale.customProfitOverride);
 
   // Customer state
-  const shipping = sale.shippingAddress as any;
+  const shipping = toShippingMeta(sale.shippingAddress);
   const [customerName, setCustomerName] = useState(sale.customer.name);
   const [contactNumber, setContactNumber] = useState(shipping.contactNumber ?? sale.customer.phone);
   const [address, setAddress] = useState(shipping.address ?? sale.customer.addressLine1 ?? '');
@@ -142,11 +158,18 @@ export function EditOrderForm({ sale, products }: Props) {
 
   const handleAddLine = async () => {
     if (!newProductId || newQuantity <= 0 || newPrice <= 0) {
-      alert('Please select a product and enter valid quantity and price');
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Select a product with a valid quantity and unit price.',
+      });
       return;
     }
 
     startTransition(async () => {
+      const toastId = toast.loading(
+        t('editOrder.lines.addToOrder', 'Add to Order'),
+        { description: 'Adding product to the order.' },
+      );
+
       try {
         await addOrderLine({
           saleOrderId: sale.id,
@@ -157,9 +180,16 @@ export function EditOrderForm({ sale, products }: Props) {
         setNewProductId('');
         setNewQuantity(1);
         setNewPrice(0);
+        toast.success(t('editOrder.lines.addToOrder', 'Add to Order'), {
+          id: toastId,
+          description: 'Order line added successfully.',
+        });
         router.refresh();
-      } catch (error: any) {
-        alert(error.message || 'Failed to add line');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to add line.'),
+        });
       }
     });
   };
@@ -169,7 +199,32 @@ export function EditOrderForm({ sale, products }: Props) {
     const price = linePrice[lineId];
     const cost = lineCost[lineId];
 
+    if (qty !== undefined && qty <= 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Quantity must be greater than zero.',
+      });
+      return;
+    }
+
+    if (price !== undefined && price <= 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Unit price must be greater than zero.',
+      });
+      return;
+    }
+
+    if (cost !== undefined && cost < 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Custom cost cannot be negative.',
+      });
+      return;
+    }
+
     startTransition(async () => {
+      const toastId = toast.loading(t('common.buttons.save', 'Save'), {
+        description: 'Updating order line.',
+      });
+
       try {
         await updateOrderLine({
           lineId,
@@ -178,9 +233,16 @@ export function EditOrderForm({ sale, products }: Props) {
           ...(cost !== undefined && { customCost: cost }),
         });
         setEditingLineId(null);
+        toast.success(t('common.buttons.save', 'Save'), {
+          id: toastId,
+          description: 'Order line updated successfully.',
+        });
         router.refresh();
-      } catch (error: any) {
-        alert(error.message || 'Failed to update line');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to update line.'),
+        });
       }
     });
   };
@@ -189,34 +251,59 @@ export function EditOrderForm({ sale, products }: Props) {
     if (!confirm('Remove this item from the order?')) return;
 
     startTransition(async () => {
+      const toastId = toast.loading(t('editOrder.lines.title', 'Current Items'), {
+        description: 'Removing order line.',
+      });
+
       try {
         await removeOrderLine({ lineId });
+        toast.success(t('editOrder.lines.title', 'Current Items'), {
+          id: toastId,
+          description: 'Order line removed successfully.',
+        });
         router.refresh();
-      } catch (error: any) {
-        alert(error.message || 'Failed to remove line');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to remove line.'),
+        });
       }
     });
   };
 
   const handleAddExpense = async () => {
     if (newExpenseAmount <= 0) {
-      alert('Please enter a valid expense amount');
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Enter a valid expense amount before saving.',
+      });
       return;
     }
 
     startTransition(async () => {
+      const toastId = toast.loading(
+        t('editOrder.expenses.addButton', 'Add Expense'),
+        { description: 'Saving order expense.' },
+      );
+
       try {
         await addOrderExpense({
           saleOrderId: sale.id,
-          category: newExpenseCategory as any,
+          category: newExpenseCategory as OrderExpenseCategory,
           description: newExpenseDescription || undefined,
           amount: newExpenseAmount,
         });
         setNewExpenseDescription('');
         setNewExpenseAmount(0);
+        toast.success(t('editOrder.expenses.addButton', 'Add Expense'), {
+          id: toastId,
+          description: 'Order expense added successfully.',
+        });
         router.refresh();
-      } catch (error: any) {
-        alert(error.message || 'Failed to add expense');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to add expense.'),
+        });
       }
     });
   };
@@ -225,46 +312,120 @@ export function EditOrderForm({ sale, products }: Props) {
     if (!confirm('Remove this expense?')) return;
 
     startTransition(async () => {
+      const toastId = toast.loading(t('editOrder.expenses.title', 'Order Expenses'), {
+        description: 'Removing expense entry.',
+      });
+
       try {
         await removeOrderExpense({ expenseId });
+        toast.success(t('editOrder.expenses.title', 'Order Expenses'), {
+          id: toastId,
+          description: 'Expense removed successfully.',
+        });
         router.refresh();
-      } catch (error: any) {
-        alert(error.message || 'Failed to remove expense');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to remove expense.'),
+        });
       }
     });
   };
 
   const handleSaveOverrides = async () => {
+    if (customCost !== null && customCost < 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Custom total cost cannot be negative.',
+      });
+      return;
+    }
+
+    if (customProfit !== null && customProfit < 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Custom profit cannot be negative.',
+      });
+      return;
+    }
+
     startTransition(async () => {
+      const toastId = toast.loading(
+        t('editOrder.overrides.saveButton', 'Save Overrides'),
+        { description: 'Updating order overrides.' },
+      );
+
       try {
         await updateOrderTotals({
           saleOrderId: sale.id,
           customCostOverride: customCost,
           customProfitOverride: customProfit,
         });
+        toast.success(t('editOrder.overrides.saveButton', 'Save Overrides'), {
+          id: toastId,
+          description: 'Overrides saved successfully.',
+        });
         router.refresh();
-        alert('Overrides saved successfully');
-      } catch (error: any) {
-        alert(error.message || 'Failed to save overrides');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(error, 'Failed to save overrides.'),
+        });
       }
     });
   };
 
   const handleSaveCustomer = async () => {
+    const trimmedName = customerName.trim();
+    const trimmedContact = contactNumber.trim();
+
+    if (!trimmedName) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Customer name is required.',
+      });
+      return;
+    }
+
+    if (trimmedContact.length < 4) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Contact number must be at least 4 characters.',
+      });
+      return;
+    }
+
+    if (deliveryFee < 0) {
+      toast.error(t('common.error', 'Something went wrong'), {
+        description: 'Delivery fee cannot be negative.',
+      });
+      return;
+    }
+
     startTransition(async () => {
+      const toastId = toast.loading(
+        t('editOrder.customer.saveButton', 'Save Customer Info'),
+        { description: 'Updating customer details.' },
+      );
+
       try {
         await updateOrderHeader({
           saleOrderId: sale.id,
-          customerName,
-          contactNumber,
+          customerName: trimmedName,
+          contactNumber: trimmedContact,
           address,
           deliveryFee,
           notes,
         });
+        toast.success(t('editOrder.customer.saveButton', 'Save Customer Info'), {
+          id: toastId,
+          description: 'Customer information updated successfully.',
+        });
         router.refresh();
-        alert('Customer info updated successfully');
-      } catch (error: any) {
-        alert(error.message || 'Failed to update customer info');
+      } catch (error) {
+        toast.error(t('common.error', 'Something went wrong'), {
+          id: toastId,
+          description: getActionErrorMessage(
+            error,
+            'Failed to update customer information.',
+          ),
+        });
       }
     });
   };
@@ -821,4 +982,31 @@ export function EditOrderForm({ sale, products }: Props) {
       </div>
     </div>
   );
+}
+
+function getActionErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function toShippingMeta(value: unknown): ShippingMeta {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const shipping = value as Record<string, unknown>;
+
+  return {
+    contactNumber:
+      typeof shipping.contactNumber === 'string'
+        ? shipping.contactNumber
+        : undefined,
+    address: typeof shipping.address === 'string' ? shipping.address : undefined,
+    deliveryFee:
+      typeof shipping.deliveryFee === 'number' ? shipping.deliveryFee : undefined,
+    notes: typeof shipping.notes === 'string' ? shipping.notes : undefined,
+  };
 }
